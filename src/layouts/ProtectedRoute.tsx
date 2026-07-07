@@ -1,7 +1,8 @@
 import { Navigate, Outlet } from 'react-router-dom';
+import { checkAuth } from '../utils/auth';
 
 export const ProtectedRoute = () => {
-  const isAuthenticated = false; // Cambiar esto a 'true' para ir al dashiboar
+  const isAuthenticated = checkAuth();
 
   if (!isAuthenticated) {
     // Si no esta logueado lo mandamos a login alv

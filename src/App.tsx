@@ -5,7 +5,9 @@ import './styles/auth.css';
 import './App.css';
 import { ProtectedRoute } from './layouts/ProtectedRoute';
 import { StudentDashboard } from './pages/StudentDashboard';
-import { Sidebar } from './components/sidebar';
+//import { Sidebar } from './components/sidebar';
+import { PublicRoute } from './layouts/PublicRoute';
+import { CatchAllRoute } from './layouts/CatchAllRoute';
 
 function App() {
   return (
@@ -19,8 +21,13 @@ function App() {
               <Route path="/dashboard" element={<StudentDashboard />} />
             </Route>
 
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            {/*RUTAS PÚBLICAS*/}
+            <Route element={<PublicRoute />}>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+            </Route>
+
+            <Route path="*" element={<CatchAllRoute />} />
           </Routes>
         </BrowserRouter>
       </main>
