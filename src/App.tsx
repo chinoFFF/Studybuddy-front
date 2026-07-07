@@ -3,6 +3,7 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import './styles/auth.css';
 import './App.css';
+import { ProtectedRoute } from './layouts/ProtectedRoute';
 import { StudentDashboard } from './pages/StudentDashboard';
 import { Sidebar } from './components/sidebar';
 
@@ -12,13 +13,14 @@ function App() {
       <main className="flex-1 max-h-screen overflow-y-auto">
         <BrowserRouter>
           <Routes>
-
             <Route path="/" element={<Navigate to="/login" replace />} />
-            
+            {/*RUTAS PRIVADAS*/}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/dashboard" element={<StudentDashboard />} />
+            </Route>
 
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/dashboard" element={<StudentDashboard />} />            
           </Routes>
         </BrowserRouter>
       </main>
