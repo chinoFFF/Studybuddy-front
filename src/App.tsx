@@ -5,7 +5,7 @@ import './styles/auth.css';
 import './App.css';
 import { ProtectedRoute } from './layouts/ProtectedRoute';
 import { StudentDashboard } from './pages/StudentDashboard';
-//import { Sidebar } from './components/sidebar';
+import { Sidebar } from './components/sidebar';
 import { PublicRoute } from './layouts/PublicRoute';
 import { CatchAllRoute } from './layouts/CatchAllRoute';
 
@@ -18,7 +18,18 @@ function App() {
             <Route path="/" element={<Navigate to="/login" replace />} />
             {/*RUTAS PRIVADAS*/}
             <Route element={<ProtectedRoute />}>
-              <Route path="/dashboard" element={<StudentDashboard />} />
+              <Route path="/sidebar" element={<Sidebar />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <div className="flex min-h-screen w-full">
+                    <Sidebar />
+                    <div className="flex-1 min-w-0">
+                      <StudentDashboard />
+                    </div>
+                  </div>
+                }
+              />
             </Route>
 
             {/*RUTAS PÚBLICAS*/}
