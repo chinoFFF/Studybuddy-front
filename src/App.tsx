@@ -8,6 +8,7 @@ import { StudentDashboard } from './pages/StudentDashboard';
 import { Sidebar } from './components/sidebar';
 import { PublicRoute } from './layouts/PublicRoute';
 import { CatchAllRoute } from './layouts/CatchAllRoute';
+import { FlashcardsPage } from './pages/FlashcardsPage';
 
 function App() {
   return (
@@ -30,6 +31,15 @@ function App() {
                   </div>
                 }
               />
+              <Route path="/flashcards" element={
+                                  <div className="flex min-h-screen w-full">
+                    <Sidebar />
+                    <div className="flex-1 min-w-0">
+                <FlashcardsPage />
+                                    </div>
+                  </div>
+                } 
+                />
             </Route>
 
             {/*RUTAS PÚBLICAS*/}
