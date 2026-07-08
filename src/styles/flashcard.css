@@ -1,0 +1,36 @@
+/* src/styles/flashcard.css */
+
+.flashcard-container {
+  /* Da la ilusión de profundidad 3D al girar */
+  perspective: 1000px;
+}
+
+.flashcard-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+  /* Permite que los elementos hijos mantengan su posición 3D */
+  transform-style: preserve-3d;
+}
+
+/* Esta clase se añade dinámicamente con React cuando el usuario hace clic */
+.flashcard-inner.is-flipped {
+  transform: rotateY(180deg);
+}
+
+.flashcard-front, 
+.flashcard-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  /* Oculta la parte trasera del div cuando está girado */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.flashcard-back {
+  /* El reverso debe empezar ya girado para que quede de espaldas */
+  transform: rotateY(180deg);
+}

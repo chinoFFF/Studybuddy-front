@@ -20,7 +20,7 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Navigate to="/login" replace />} />
-            {/*RUTAS PRIVADAS*/}
+            {/RUTAS PRIVADAS/}
             <Route element={<ProtectedRoute />}>
               <Route path="/sidebar" element={<Sidebar />} />
               <Route
@@ -80,7 +80,7 @@ function App() {
               />
             </Route>
 
-            {/*RUTAS PÚBLICAS*/}
+            {/RUTAS PÚBLICAS/}
             <Route element={<PublicRoute />}>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
