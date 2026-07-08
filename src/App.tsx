@@ -8,6 +8,10 @@ import { StudentDashboard } from './pages/StudentDashboard';
 import { Sidebar } from './components/sidebar';
 import { PublicRoute } from './layouts/PublicRoute';
 import { CatchAllRoute } from './layouts/CatchAllRoute';
+import { FlashcardsPage } from './pages/FlashcardsPage';
+import { Examenes } from './pages/Examenes';
+import { MisSalas } from './pages/MisSalas';
+import { Configuracion } from './pages/Configuracion';
 
 function App() {
   return (
@@ -26,6 +30,50 @@ function App() {
                     <Sidebar />
                     <div className="flex-1 min-w-0">
                       <StudentDashboard />
+                    </div>
+                  </div>
+                }
+              />
+              <Route
+                path="/mis-salas"
+                element={
+                  <div className="flex min-h-screen w-full">
+                    <Sidebar />
+                    <div className="flex-1 min-w-0">
+                      <MisSalas />
+                    </div>
+                  </div>
+                }
+              />
+              <Route
+                path="/flashcards"
+                element={
+                  <div className="flex min-h-screen w-full">
+                    <Sidebar />
+                    <div className="flex-1 min-w-0">
+                      <FlashcardsPage />
+                    </div>
+                  </div>
+                }
+              />
+              <Route
+                path="/examenes"
+                element={
+                  <div className="flex min-h-screen w-full">
+                    <Sidebar />
+                    <div className="flex-1 min-w-0">
+                      <Examenes />
+                    </div>
+                  </div>
+                }
+              />
+              <Route
+                path="/configuracion"
+                element={
+                  <div className="flex min-h-screen w-full">
+                    <Sidebar />
+                    <div className="flex-1 min-w-0">
+                      <Configuracion />
                     </div>
                   </div>
                 }
