@@ -1,7 +1,10 @@
 // components/Sidebar.tsx
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { logout } from '../utils/auth';
 
 export const Sidebar: React.FC = () => {
+  const navigate = useNavigate();
   // Estado para saber si el sidebar está expandido (true) o colapsado (false)
   const [isOpen, setIsOpen] = useState<boolean>(true);
 
@@ -11,8 +14,13 @@ export const Sidebar: React.FC = () => {
     { name: 'Mis Salas', icon: '👥', active: false },
     { name: 'Flashcards', icon: '🃏', active: false },
     { name: 'Exámenes', icon: '📝', active: false },
-    { name: 'Configuración', icon: '⚙/', active: false },
+    { name: 'Configuración', icon: '⚙️', active: false },
   ];
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   return (
     <div 
@@ -65,6 +73,18 @@ export const Sidebar: React.FC = () => {
           </button>
         ))}
       </nav>
+
+      {/* BOTÓN DE CERRAR SESIÓN */}
+      <div className="p-3 border-t border-gray-800">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center space-x-4 px-4 py-3 rounded-xl font-medium text-red-400 hover:bg-red-900/30 hover:text-red-300 transition-all"
+          title="Cerrar sesión"
+        >
+          <span className="text-xl shrink-0">🚪</span>
+          {isOpen && <span className="text-sm tracking-wide">Cerrar Sesión</span>}
+        </button>
+      </div>
 
       {/* PIE DE PÁGINA DEL SIDEBAR */}
       <div className="p-4 border-t border-gray-800 text-xs text-center text-gray-500 overflow-hidden whitespace-nowrap">

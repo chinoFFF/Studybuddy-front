@@ -1,4 +1,13 @@
+const AUTH_KEY = 'isAuthenticated';
+
 export const checkAuth = (): boolean => {
-  // aqui va logica del back real pero lo tamos simulando
-  return true; 
+  return localStorage.getItem(AUTH_KEY) === 'true';
+};
+
+export const login = (): void => {
+  localStorage.setItem(AUTH_KEY, 'true');
+};
+
+export const logout = (): void => {
+  localStorage.removeItem(AUTH_KEY);
 };

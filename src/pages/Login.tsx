@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { InputField } from '../components/InputField';
 import '../styles/auth.css';
-import { Link } from 'react-router-dom';
+import { Link,useNavigate } from 'react-router-dom';
+import { login } from '../utils/auth';
 
 export const Login: React.FC = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({ email: '', password: '', general: '' });
 
@@ -40,6 +42,9 @@ export const Login: React.FC = () => {
     try {
       // AQUÍ IRÁ LA CONEXIÓN CON EL BACKEND (Ej. axios.post('/api/auth/login', formData))
       console.log('Datos listos para enviar de forma segura:', formData);
+      login();
+      navigate('/dashboard'); // Redirige al dashboard tras un login exitoso
+
     } catch (error) {
       setErrors({ ...errors, general: 'Credenciales incorrectas o error en el servidor.' });
     }
