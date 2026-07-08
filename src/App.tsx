@@ -9,6 +9,9 @@ import { Sidebar } from './components/sidebar';
 import { PublicRoute } from './layouts/PublicRoute';
 import { CatchAllRoute } from './layouts/CatchAllRoute';
 import { FlashcardsPage } from './pages/FlashcardsPage';
+import { Examenes } from './pages/Examenes';
+import { MisSalas } from './pages/MisSalas';
+import { Configuracion } from './pages/Configuracion';
 
 function App() {
   return (
@@ -17,7 +20,7 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Navigate to="/login" replace />} />
-            {/*RUTAS PRIVADAS*/}
+            {/RUTAS PRIVADAS/}
             <Route element={<ProtectedRoute />}>
               <Route path="/sidebar" element={<Sidebar />} />
               <Route
@@ -31,18 +34,53 @@ function App() {
                   </div>
                 }
               />
-              <Route path="/flashcards" element={
-                                  <div className="flex min-h-screen w-full">
+              <Route
+                path="/mis-salas"
+                element={
+                  <div className="flex min-h-screen w-full">
                     <Sidebar />
                     <div className="flex-1 min-w-0">
-                <FlashcardsPage />
-                                    </div>
+                      <MisSalas />
+                    </div>
                   </div>
-                } 
-                />
+                }
+              />
+              <Route
+                path="/flashcards"
+                element={
+                  <div className="flex min-h-screen w-full">
+                    <Sidebar />
+                    <div className="flex-1 min-w-0">
+                      <FlashcardsPage />
+                    </div>
+                  </div>
+                }
+              />
+              <Route
+                path="/examenes"
+                element={
+                  <div className="flex min-h-screen w-full">
+                    <Sidebar />
+                    <div className="flex-1 min-w-0">
+                      <Examenes />
+                    </div>
+                  </div>
+                }
+              />
+              <Route
+                path="/configuracion"
+                element={
+                  <div className="flex min-h-screen w-full">
+                    <Sidebar />
+                    <div className="flex-1 min-w-0">
+                      <Configuracion />
+                    </div>
+                  </div>
+                }
+              />
             </Route>
 
-            {/*RUTAS PÚBLICAS*/}
+            {/RUTAS PÚBLICAS/}
             <Route element={<PublicRoute />}>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />

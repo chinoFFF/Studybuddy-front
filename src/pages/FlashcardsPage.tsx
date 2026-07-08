@@ -126,3 +126,4 @@ export const FlashcardsPage: React.FC = () => {
     </div>
   );
 };
+
