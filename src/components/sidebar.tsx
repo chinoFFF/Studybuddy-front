@@ -15,7 +15,6 @@ export const Sidebar: React.FC = () => {
     { name: 'Mis Salas', icon: '👥', path: '/mis-salas' },
     { name: 'Flashcards', icon: '🃏', path: '/flashcards' },
     { name: 'Exámenes', icon: '📝', path: '/examenes' },
-    { name: 'Configuración', icon: '⚙️', path: '/configuracion' },
   ];
 
   const handleLogout = () => {
@@ -25,15 +24,15 @@ export const Sidebar: React.FC = () => {
 
   return (
     <div 
-      className={`min-h-screen bg-gray-900 text-white flex flex-col transition-all duration-300 ${
+      className={`h-screen sticky top-0 bg-gray-900 text-white flex flex-col transition-all duration-300 ${
         isOpen ? 'w-64' : 'w-20'
       }`}
     >
       {/* LOGO Y BOTÓN DE COLAPSAR */}
       <div className="p-4 flex items-center justify-between border-b border-gray-800">
         {isOpen && (
-          <span className="text-xl font-bold bg-linear-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-            EduRAG IA 🎓
+          <span className="text-xl font-bold bg-linear-to-r   bg-clip-text ">
+            EduRAG IA 
           </span>
         )}
         <button 

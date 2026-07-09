@@ -11,16 +11,15 @@ import { CatchAllRoute } from './layouts/CatchAllRoute';
 import { FlashcardsPage } from './pages/FlashcardsPage';
 import { Examenes } from './pages/Examenes';
 import { MisSalas } from './pages/MisSalas';
-import { Configuracion } from './pages/Configuracion';
+
 
 function App() {
   return (
-    <div className="flex min-h-screen bg-gray-50 font-sans antialiased">
+    <div className="h-screen overflow-hidden bg-gray-50 font-sans antialiased">
       <main className="flex-1 max-h-screen overflow-y-auto">
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Navigate to="/login" replace />} />
-            {/RUTAS PRIVADAS/}
             <Route element={<ProtectedRoute />}>
               <Route path="/sidebar" element={<Sidebar />} />
               <Route
@@ -28,7 +27,7 @@ function App() {
                 element={
                   <div className="flex min-h-screen w-full">
                     <Sidebar />
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 overflow-hidden">
                       <StudentDashboard />
                     </div>
                   </div>
@@ -67,20 +66,8 @@ function App() {
                   </div>
                 }
               />
-              <Route
-                path="/configuracion"
-                element={
-                  <div className="flex min-h-screen w-full">
-                    <Sidebar />
-                    <div className="flex-1 min-w-0">
-                      <Configuracion />
-                    </div>
-                  </div>
-                }
-              />
             </Route>
 
-            {/RUTAS PÚBLICAS/}
             <Route element={<PublicRoute />}>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
