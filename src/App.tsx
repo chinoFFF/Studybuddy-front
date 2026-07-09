@@ -10,8 +10,9 @@ import { PublicRoute } from './layouts/PublicRoute';
 import { CatchAllRoute } from './layouts/CatchAllRoute';
 import { FlashcardsPage } from './pages/FlashcardsPage';
 import { Examenes } from './pages/Examenes';
-import { MisSalas } from './pages/MisSalas';
-
+import { AllRooms } from './pages/AllRooms';
+import { AIChatRoom } from './pages/AIChatRoom';
+import { Configuracion } from './pages/Configuracion';
 
 function App() {
   return (
@@ -39,7 +40,7 @@ function App() {
                   <div className="flex min-h-screen w-full">
                     <Sidebar />
                     <div className="flex-1 min-w-0">
-                      <MisSalas />
+                      <AllRooms />
                     </div>
                   </div>
                 }
@@ -62,6 +63,17 @@ function App() {
                     <Sidebar />
                     <div className="flex-1 min-w-0">
                       <Examenes />
+                    </div>
+                  </div>
+                }
+              />
+              <Route
+                path="/AIChatRoom"
+                element={
+                  <div className="flex min-h-screen w-full">
+                    <Sidebar />
+                    <div className="flex-1 min-w-0">
+                      <AIChatRoom />
                     </div>
                   </div>
                 }
