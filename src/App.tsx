@@ -12,7 +12,6 @@ import { FlashcardsPage } from './pages/FlashcardsPage';
 import { Examenes } from './pages/Examenes';
 import { AllRooms } from './pages/AllRooms';
 import { AIChatRoom } from './pages/AIChatRoom';
-import { Configuracion } from './pages/Configuracion';
 
 function App() {
   return (
