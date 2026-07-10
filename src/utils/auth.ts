@@ -1,13 +1,22 @@
-const AUTH_KEY = 'isAuthenticated';
+// src/utils/auth.ts
 
-export const checkAuth = (): boolean => {
-  return localStorage.getItem(AUTH_KEY) === 'true';
-};
+const TOKEN_KEY = 'access_token';
 
-export const login = (): void => {
-  localStorage.setItem(AUTH_KEY, 'true');
+// Ahora guarda el token real que devuelve el backend al hacer login/register.
+export const login = (token: string): void => {
+  localStorage.setItem(TOKEN_KEY, token);
 };
 
 export const logout = (): void => {
-  localStorage.removeItem(AUTH_KEY);
+  localStorage.removeItem(TOKEN_KEY);
+};
+
+// Mismo contrato de siempre: boolean sincrono.
+// CatchAllRoute, ProtectedRoute y PublicRoute NO necesitan cambios.
+export const checkAuth = (): boolean => {
+  return !!localStorage.getItem(TOKEN_KEY);
+};
+
+export const getToken = (): string | null => {
+  return localStorage.getItem(TOKEN_KEY);
 };

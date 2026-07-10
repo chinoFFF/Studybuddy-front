@@ -3,6 +3,7 @@ import { InputField } from '../components/InputField';
 import '../styles/auth.css';
 import { Link,useNavigate } from 'react-router-dom';
 import { login } from '../utils/auth';
+import { authApi } from '../api/Auth.api';
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -40,9 +41,12 @@ export const Login: React.FC = () => {
     if (!validateForm()) return;
 
     try {
-      // AQUÍ IRÁ LA CONEXIÓN CON EL BACKEND (Ej. axios.post('/api/auth/login', formData))
-      console.log('Datos listos para enviar de forma segura:', formData);
-      login();
+      const { access_token } = await authApi.login({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      login(access_token);    // Guarda el token real del backend
       navigate('/dashboard'); // Redirige al dashboard tras un login exitoso
 
     } catch (error) {
