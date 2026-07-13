@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { InputField } from '../components/InputField';
 import '../styles/auth.css';
 import { login } from '../utils/auth';
-import { authApi } from '../api/Auth.api';
+import { authApi } from '../api/auth.api';
 
 export const Register: React.FC = () => {
   const navigate = useNavigate();

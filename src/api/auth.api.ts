@@ -1,5 +1,5 @@
 // src/api/auth.api.ts
-import { apiClient } from './Client';
+import { apiClient } from './client';
 import type { RegisterPayload, LoginPayload, AuthResponse } from '../types/auth';
 
 export const authApi = {

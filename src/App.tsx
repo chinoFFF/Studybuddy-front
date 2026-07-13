@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
+import { AcceptInvitation } from './pages/AcceptInvitation';
 import './styles/auth.css';
 import './App.css';
 import { ProtectedRoute } from './layouts/ProtectedRoute';
@@ -81,6 +82,7 @@ function App() {
 
             <Route element={<PublicRoute />}>
               <Route path="/login" element={<Login />} />
+              <Route path="/invitations/accept" element={<AcceptInvitation />} />
               <Route path="/register" element={<Register />} />
             </Route>
 
