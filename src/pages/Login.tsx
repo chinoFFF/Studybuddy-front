@@ -3,10 +3,12 @@ import { InputField } from '../components/InputField';
 import '../styles/auth.css';
 import { Link,useNavigate } from 'react-router-dom';
 import { login } from '../utils/auth';
-import { authApi } from '../api/Auth.api';
+import { authApi } from '../api/auth.api';
+import { useGoogleAuth } from '../hooks/useGoogleAuth';
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
+  const { triggerGoogleSignIn } = useGoogleAuth();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({ email: '', password: '', general: '' });
 
@@ -55,8 +57,7 @@ export const Login: React.FC = () => {
   };
 
   const handleGoogleLogin = () => {
-    // Aquí se integrará el proveedor de autenticación
-    console.log('Iniciando flujo de Google OAuth...');
+    triggerGoogleSignIn();
   };
 
   return (

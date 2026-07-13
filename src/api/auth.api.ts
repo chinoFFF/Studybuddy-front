@@ -1,5 +1,5 @@
 // src/api/auth.api.ts
-import { apiClient } from './Client';
+import { apiClient } from './client';
 import type { RegisterPayload, LoginPayload, AuthResponse } from '../types/auth';
 
 export const authApi = {
@@ -10,6 +10,12 @@ export const authApi = {
 
   register: async (payload: RegisterPayload): Promise<AuthResponse> => {
     const { data } = await apiClient.post('/auth/register', payload);
+    return data;
+  },
+
+
+  google: async (credential: string): Promise<AuthResponse> => {
+    const { data } = await apiClient.post('/auth/google', { token: credential });
     return data;
   },
 };

@@ -2,64 +2,26 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CreateRoomModal } from '../components/CreateRoomModal'; // Ajusta la ruta si es necesario
-
-// Interfaces de TypeScript alineadas con los esquemas de tu backend (FastAPI/Pydantic)
-interface StudyRoom {
-  id: string;
-  name: string;
-  subject: string;
-  active_students: number;
-  total_documentos: number;
-  created_at: string;
-}
+import { StudyRoomCard } from '../components/StudyRoomCard';
+import { organizationsApi } from '../api/organizations.api';
+import type { Organization } from '../types/organization';
 
 export const AllRooms: React.FC = () => {
-  const [rooms, setRooms] = useState<StudyRoom[]>([]);
+  const [rooms, setRooms] = useState<Organization[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   // Hook de react-router-dom para la redirección
   const navigate = useNavigate();
 
-  // Simulación del consumo del servicio de la API
   useEffect(() => {
     const fetchRooms = async () => {
       try {
         setLoading(true);
-        // Aquí conectarías con tu servicio modular de FastAPI: e.g., api.getRooms()
-        const mockRooms: StudyRoom[] = [
-          {
-            id: 'room-1',
-            name: 'Preparación Examen de Redes',
-            subject: 'Telecomunicaciones',
-            active_students: 5,
-            total_documentos: 24,
-            created_at: '2026-07-01'
-          },
-          {
-            id: 'room-2',
-            name: 'Grupo de Estudio: Git Avanzado',
-            subject: 'Ingeniería de Software',
-            active_students: 8,
-            total_documentos: 30,
-            created_at: '2026-07-05'
-          },
-          {
-            id: 'room-3',
-            name: 'Estructuras de Datos RAG y Vectoriales',
-            subject: 'Inteligencia Artificial',
-            active_students: 3,
-            total_documentos: 15,
-            created_at: '2026-07-07'
-          }
-        ];
-
-        // Simular retraso de red de la API
-        setTimeout(() => {
-          setRooms(mockRooms);
-          setLoading(false);
-        }, 600);
+        const data = await organizationsApi.getAll();
+        setRooms(data);
       } catch (error) {
         console.error("Error al cargar las salas:", error);
+      } finally {
         setLoading(false);
       }
     };
@@ -100,27 +62,18 @@ export const AllRooms: React.FC = () => {
         /* Grid de Tarjetas de las Salas (Igual al Dashboard) */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {rooms.map((room) => (
-            <div key={room.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow flex flex-col justify-between">
-              <div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">{room.name}</h3>
-                <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                  Sala enfocada en {room.subject}. Creada el {room.created_at}.
-                </p>
-              </div>
-              <div>
-                <div className="flex items-center justify-between border-t border-gray-100 pt-4 text-xs text-gray-500">
-                  <span>👥 {room.active_students} Miembros</span>
-                  <span>📄 {room.total_documentos} documentos</span>
-                </div>
-                {/* Redirección al Chat con react-router-dom */}
-                <button
-                  onClick={() => navigate('/AIChatRoom')} // Redirige a la sala específica
-                  className="mt-4 w-full py-2 bg-gray-50 hover:bg-indigo-50 text-indigo-700 font-medium rounded-lg text-sm transition-colors text-center border border-gray-100"
-                >
-                  Entrar a Estudiar
-                </button>
-              </div>
-            </div>
+            <StudyRoomCard
+              key={room.id}
+              name={room.name}
+              description={
+                room.description
+                  ? `${room.description}${room.created_at ? ` · Creada el ${room.created_at}` : ''}`
+                  : 'Sala de estudio con IA.'
+              }
+              memberCount={room.member_count ?? 0}
+              documentCount={room.document_count ?? 0}
+              onEnter={() => navigate('/AIChatRoom')} // Redirige a la sala específica
+            />
           ))}
         </div>
       )}

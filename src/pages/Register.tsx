@@ -3,10 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { InputField } from '../components/InputField';
 import '../styles/auth.css';
 import { login } from '../utils/auth';
-import { authApi } from '../api/Auth.api';
+import { authApi } from '../api/auth.api';
+import { useGoogleAuth } from '../hooks/useGoogleAuth';
 
 export const Register: React.FC = () => {
   const navigate = useNavigate();
+  const { triggerGoogleSignIn } = useGoogleAuth();
   const [formData, setFormData] = useState({ 
     name: '', 
     email: '', 
@@ -73,10 +75,6 @@ export const Register: React.FC = () => {
         password: formData.password,
       });
 
-      // Asunción: al registrarse, el backend ya devuelve un token y
-      // dejamos al usuario logueado directamente (sin pasar por /login).
-      // Si prefieres que lo mande a /login en vez de iniciar sesión
-      // automáticamente, dime y lo ajustamos.
       login(access_token);
       navigate('/dashboard');
     } catch (error) {
@@ -85,7 +83,7 @@ export const Register: React.FC = () => {
   };
 
   const handleGoogleSignup = () => {
-    console.log('Iniciando flujo de registro con Google OAuth...');
+    triggerGoogleSignIn();
   };
 
   return (
