@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CreateRoomModal } from '../components/CreateRoomModal';
 import { StudyRoomCard } from '../components/StudyRoomCard';
-import { organizationsApi } from '../api/organizations.api';
-import type { Organization } from '../types/organization';
+// import { organizationsApi } from '../api/organizations.api';
+// import type { Organization } from '../types/organization';
 
 const MOCK_PROGRESS = {
   currentStreak: 5,
@@ -15,24 +15,24 @@ const MOCK_PROGRESS = {
 
 export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [rooms, setRooms] = useState<Organization[]>([]);
+  // const [rooms, setRooms] = useState<Organization[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    const fetchRooms = async () => {
-      try {
-        setLoading(true);
-        const data = await organizationsApi.getAll();
-        setRooms(data);
-      } catch (error) {
-        console.error("Error al cargar las salas:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // useEffect(() => {
+  //   const fetchRooms = async () => {
+  //     try {
+  //       setLoading(true);
+  //       const data = await organizationsApi.getAll();
+  //       setRooms(data);
+  //     } catch (error) {
+  //       console.error("Error al cargar las salas:", error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
 
-    fetchRooms();
-  }, []);
+  //   fetchRooms();
+  // }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 font-sans">
@@ -86,7 +86,7 @@ export const StudentDashboard: React.FC = () => {
           <CreateRoomModal />
         </div>
 
-        {loading ? (
+        {/* {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
             <p className="text-gray-500 font-medium">Consultando salas con el servidor...</p>
@@ -112,7 +112,7 @@ export const StudentDashboard: React.FC = () => {
               />
             ))}
           </div>
-        )}
+        )} */}
       </section>
 
     </div>

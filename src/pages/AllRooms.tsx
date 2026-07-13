@@ -3,31 +3,31 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CreateRoomModal } from '../components/CreateRoomModal'; // Ajusta la ruta si es necesario
 import { StudyRoomCard } from '../components/StudyRoomCard';
-import { organizationsApi } from '../api/organizations.api';
-import type { Organization } from '../types/organization';
+// import { organizationsApi } from '../api/organizations.api';
+// import type { Organization } from '../types/organization';
 
 export const AllRooms: React.FC = () => {
-  const [rooms, setRooms] = useState<Organization[]>([]);
+  // const [rooms, setRooms] = useState<Organization[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   // Hook de react-router-dom para la redirección
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchRooms = async () => {
-      try {
-        setLoading(true);
-        const data = await organizationsApi.getAll();
-        setRooms(data);
-      } catch (error) {
-        console.error("Error al cargar las salas:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  // useEffect(() => {
+  //   const fetchRooms = async () => {
+  //     try {
+  //       setLoading(true);
+  //       const data = await organizationsApi.getAll();
+  //       setRooms(data);
+  //     } catch (error) {
+  //       console.error("Error al cargar las salas:", error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
 
-    fetchRooms();
-  }, []);
+  //   fetchRooms();
+  // }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 font-sans">
@@ -44,7 +44,7 @@ export const AllRooms: React.FC = () => {
         </div>
       </div>
 
-      {/* Estado de Carga */}
+      {/* Estado de Carga 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
@@ -59,7 +59,6 @@ export const AllRooms: React.FC = () => {
           />
         </div>
       ) : (
-        /* Grid de Tarjetas de las Salas (Igual al Dashboard) */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {rooms.map((room) => (
             <StudyRoomCard
@@ -76,7 +75,7 @@ export const AllRooms: React.FC = () => {
             />
           ))}
         </div>
-      )}
+      )}*/}
     </div>
   );
 };
