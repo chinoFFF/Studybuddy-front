@@ -21,6 +21,13 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Navigate to="/login" replace />} />
+
+            {/* Ruta independiente: AcceptInvitation maneja internamente
+                si el usuario ya tiene sesión o no. No debe ir ni en
+                ProtectedRoute (bloquearía a visitantes sin cuenta) ni en
+                PublicRoute (bloquearía a quien ya tiene sesión abierta). */}
+            <Route path="/invitations/accept" element={<AcceptInvitation />} />
+
             <Route element={<ProtectedRoute />}>
               <Route path="/sidebar" element={<Sidebar />} />
               <Route
@@ -82,7 +89,6 @@ function App() {
 
             <Route element={<PublicRoute />}>
               <Route path="/login" element={<Login />} />
-              <Route path="/invitations/accept" element={<AcceptInvitation />} />
               <Route path="/register" element={<Register />} />
             </Route>
 

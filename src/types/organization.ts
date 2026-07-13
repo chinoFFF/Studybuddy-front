@@ -1,8 +1,12 @@
+// src/types/organization.ts
+
 export interface OrganizationResponse {
   id: string;
   name: string;
-  description?: string | null;
-  tenant_id: string;
+  description?: string;
+  owner_id?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface OrganizationCreatePayload {
@@ -17,15 +21,14 @@ export interface OrganizationUpdatePayload {
 
 export interface OrganizationInvitationPayload {
   email: string;
-  role: string;
+  role?: string;
 }
 
 export interface OrganizationInvitationResponse {
   id: string;
-  room_id: string;
+  organization_id: string;
   email: string;
-  token: string;
   role: string;
-  expires_at: string;
-  status: string;
+  token?: string;
+  expires_at?: string;
 }

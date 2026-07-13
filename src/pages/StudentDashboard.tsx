@@ -1,10 +1,10 @@
 // pages/StudentDashboard.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CreateRoomModal } from '../components/CreateRoomModal';
-import { StudyRoomCard } from '../components/StudyRoomCard';
-// import { organizationsApi } from '../api/organizations.api';
-// import type { Organization } from '../types/organization';
+import { OrganizationCard } from '../components/OrganizationCard';
+import { organizationService } from '../services/organizationService';
+import type { OrganizationResponse } from '../types/organization';
 
 const MOCK_PROGRESS = {
   currentStreak: 5,
@@ -15,24 +15,27 @@ const MOCK_PROGRESS = {
 
 export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
-  // const [rooms, setRooms] = useState<Organization[]>([]);
+  const [rooms, setRooms] = useState<OrganizationResponse[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string>('');
 
-  // useEffect(() => {
-  //   const fetchRooms = async () => {
-  //     try {
-  //       setLoading(true);
-  //       const data = await organizationsApi.getAll();
-  //       setRooms(data);
-  //     } catch (error) {
-  //       console.error("Error al cargar las salas:", error);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
+  const fetchRooms = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const data = await organizationService.listOrganizations();
+      setRooms(data);
+    } catch (err) {
+      console.error('Error al cargar las salas:', err);
+      setError('No se pudieron cargar las salas desde el backend.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  //   fetchRooms();
-  // }, []);
+  useEffect(() => {
+    void fetchRooms();
+  }, [fetchRooms]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 font-sans">
@@ -82,14 +85,23 @@ export const StudentDashboard: React.FC = () => {
       <section>
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-semibold text-gray-800">Mis Salas de Estudio</h2>
-          {/* El botón y la lógica del modal viven dentro de CreateRoomModal */}
-          <CreateRoomModal />
+          <CreateRoomModal onCreated={fetchRooms} />
         </div>
 
-        {/* {loading ? (
+        {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
             <p className="text-gray-500 font-medium">Consultando salas con el servidor...</p>
+          </div>
+        ) : error ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+            <p className="text-red-600 text-lg mb-4">{error}</p>
+            <button
+              onClick={() => void fetchRooms()}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-lg transition"
+            >
+              Reintentar
+            </button>
           </div>
         ) : rooms.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
@@ -97,22 +109,24 @@ export const StudentDashboard: React.FC = () => {
             <CreateRoomModal
               buttonLabel="Crear tu primera sala"
               buttonClassName="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-lg transition"
+              onCreated={fetchRooms}
             />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {rooms.map((room) => (
-              <StudyRoomCard
-                key={room.id}
-                name={room.name}
-                description={room.description ?? 'Sala de estudio con IA.'}
-                memberCount={room.member_count ?? 0}
-                documentCount={room.document_count ?? 0}
-                onEnter={() => navigate('/AIChatRoom')}
-              />
+              <div key={room.id} className="space-y-3">
+                <OrganizationCard organization={room} onUpdated={fetchRooms} />
+                <button
+                  onClick={() => navigate('/AIChatRoom')}
+                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50"
+                >
+                  Entrar a Estudiar
+                </button>
+              </div>
             ))}
           </div>
-        )} */}
+        )}
       </section>
 
     </div>

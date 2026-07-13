@@ -84,7 +84,7 @@ export const AllRooms: React.FC = () => {
             </div>
           ))}
         </div>
-      )}*/}
+      )}
     </div>
   );
 };
