@@ -23,9 +23,7 @@ function App() {
             <Route path="/" element={<Navigate to="/login" replace />} />
 
             {/* Ruta independiente: AcceptInvitation maneja internamente
-                si el usuario ya tiene sesión o no. No debe ir ni en
-                ProtectedRoute (bloquearía a visitantes sin cuenta) ni en
-                PublicRoute (bloquearía a quien ya tiene sesión abierta). */}
+                si el usuario ya tiene sesión o no. */}
             <Route path="/invitations/accept" element={<AcceptInvitation />} />
 
             <Route element={<ProtectedRoute />}>
@@ -74,8 +72,10 @@ function App() {
                   </div>
                 }
               />
+              {/* :roomId es obligatorio ahora — AIChatRoom lo necesita para
+                  crear la sesión de chat (room_id) y subir documentos. */}
               <Route
-                path="/AIChatRoom"
+                path="/AIChatRoom/:roomId"
                 element={
                   <div className="flex min-h-screen w-full">
                     <Sidebar />

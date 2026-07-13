@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { organizationService } from '../services/organizationService';
+import { getRoomIdFromOrganization } from '../utils/room';
 
 interface CreateRoomModalProps {
   buttonLabel?: string;
   buttonClassName?: string;
-  chatRoute?: string;
   onCreated?: () => void;
 }
 
 export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
   buttonLabel = '+ Crear Nueva Sala',
   buttonClassName = 'px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors shadow-sm',
-  chatRoute = '/AIChatRoom',
   onCreated,
 }) => {
   const navigate = useNavigate();
@@ -23,12 +22,14 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [created, setCreated] = useState(false);
+  const [createdRoomId, setCreatedRoomId] = useState<string | null>(null);
 
   const resetState = () => {
     setRoomName('');
     setDescription('');
     setError('');
     setCreated(false);
+    setCreatedRoomId(null);
     setLoading(false);
   };
 
@@ -45,11 +46,12 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
     setError('');
 
     try {
-      await organizationService.createOrganization({
+      const newRoom = await organizationService.createOrganization({
         name: roomName.trim(),
         description: description.trim() || undefined,
       });
 
+      setCreatedRoomId(getRoomIdFromOrganization(newRoom.tenant_id)); // room_id real, no el id de la organización
       setCreated(true);
       onCreated?.();
     } catch (err) {
@@ -66,8 +68,11 @@ export const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
   };
 
   const handleActionClick = () => {
+    if (!createdRoomId) return;
+    const roomId = createdRoomId;
+    const finalRoomName = roomName;
     handleCloseAndReset();
-    navigate(chatRoute);
+    navigate(`/AIChatRoom/${roomId}`, { state: { roomName: finalRoomName } });
   };
 
   return (

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { CreateRoomModal } from '../components/CreateRoomModal';
 import { OrganizationCard } from '../components/OrganizationCard';
 import { organizationService } from '../services/organizationService';
+import { getRoomIdFromOrganization } from '../utils/room';
 import type { OrganizationResponse } from '../types/organization';
 
 const MOCK_PROGRESS = {
@@ -118,7 +119,7 @@ export const StudentDashboard: React.FC = () => {
               <div key={room.id} className="space-y-3">
                 <OrganizationCard organization={room} onUpdated={fetchRooms} />
                 <button
-                  onClick={() => navigate('/AIChatRoom')}
+                  onClick={() => navigate(`/AIChatRoom/${getRoomIdFromOrganization(room.tenant_id)}`, { state: { roomName: room.name } })}
                   className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50"
                 >
                   Entrar a Estudiar

@@ -4,6 +4,9 @@ export interface OrganizationResponse {
   id: string;
   name: string;
   description?: string;
+  // Formato "room_<uuid>" — de aquí sale el room_id real para chat/documents.
+  // OJO: no siempre coincide con el "id" de la organización, hay que usar este campo.
+  tenant_id: string;
   owner_id?: string;
   created_at?: string;
   updated_at?: string;

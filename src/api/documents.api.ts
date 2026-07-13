@@ -3,11 +3,12 @@ import { apiClient } from './client';
 import type { DocumentItem, DocumentSummary, DownloadUrlResponse } from '../types/document';
 
 export const documentsApi = {
-  // Único endpoint que pide más que un id: file + subject_id
-  upload: async (file: File, subjectId: string): Promise<DocumentItem> => {
+  // Nuevo contrato del backend: file + room_id + title (antes era file + subject_id)
+  upload: async (file: File, roomId: string, title?: string): Promise<DocumentItem> => {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('subject_id', subjectId);
+    formData.append('room_id', roomId);
+    formData.append('title', title ?? file.name);
 
     const { data } = await apiClient.post('/documents/', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },

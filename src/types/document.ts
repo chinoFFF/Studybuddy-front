@@ -2,7 +2,7 @@
 
 export interface DocumentItem {
   id: string;
-  subject_id: string;
+  room_id: string; 
   title: string;
   file_path: string;
   status: string;
@@ -17,4 +17,4 @@ export interface DocumentSummary {
 
 export interface DownloadUrlResponse {
   url: string;
-}   
+}
