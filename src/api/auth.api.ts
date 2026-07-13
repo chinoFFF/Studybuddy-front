@@ -12,4 +12,10 @@ export const authApi = {
     const { data } = await apiClient.post('/auth/register', payload);
     return data;
   },
+
+
+  google: async (credential: string): Promise<AuthResponse> => {
+    const { data } = await apiClient.post('/auth/google', { token: credential });
+    return data;
+  },
 };

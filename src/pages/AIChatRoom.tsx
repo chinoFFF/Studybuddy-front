@@ -1,6 +1,12 @@
 // pages/AIChatRoom.tsx
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { documentsApi } from '../api/documents.api';
+
+// TODO: reemplaza esto por el subject_id real en cuanto exista selección
+// de materia/sala (por ejemplo, leyéndolo de useParams() una vez que la
+// ruta sea algo como /rooms/:roomId/subjects/:subjectId/chat).
+const subjectId = 'REEMPLAZA_CON_SUBJECT_ID_REAL';
 
 export const AIChatRoom: React.FC = () => {
   const navigate = useNavigate();
@@ -10,11 +16,14 @@ export const AIChatRoom: React.FC = () => {
   ]);
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
-  
+  const [isUploading, setIsUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   // Estado para manejar dinámicamente los recursos vinculados
-  const [resources, setResources] = useState([
-    { id: 1, name: 'Documentacion_Proyecto.pdf' },
-    { id: 2, name: 'Arquitectura_FastAPI.md' }
+  // (ahora usa el id real del documento que devuelve el backend)
+  const [resources, setResources] = useState<{ id: string; name: string }[]>([
+    { id: 'doc-demo-1', name: 'Documentacion_Proyecto.pdf' },
+    { id: 'doc-demo-2', name: 'Arquitectura_FastAPI.md' }
   ]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -40,29 +49,94 @@ export const AIChatRoom: React.FC = () => {
   };
 
   // Función para manejar la subida de archivos (PDF, Presentaciones o Apuntes)
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (files && files.length > 0) {
-      const uploadedFile = files[0];
-      
-      // Añadimos el archivo subido al panel lateral de recursos simulando el proceso de Backend/RAG
-      const newResource = {
-        id: Date.now(),
-        name: uploadedFile.name
-      };
-      
-      setResources((prev) => [...prev, newResource]);
-      
-      // Notificación en el chat de que el archivo fue cargado
+    if (!files || files.length === 0) return;
+
+    const uploadedFile = files[0];
+    setIsUploading(true);
+
+    // Mensaje optimista de "procesando" mientras sube al backend
+    setMessages((prev) => [
+      ...prev,
+      { id: Date.now(), sender: 'ia', text: `⏳ Procesando e indexando "${uploadedFile.name}" en la base de conocimiento vectorial de la sala...` }
+    ]);
+
+    try {
+      const uploadedDoc = await documentsApi.upload(uploadedFile, subjectId);
+
+      // Añadimos el documento real (con su id del backend) al panel lateral
+      setResources((prev) => [...prev, { id: uploadedDoc.id, name: uploadedDoc.title }]);
+
       setMessages((prev) => [
-        ...prev, 
-        { id: Date.now(), sender: 'ia', text: `⏳ Procesando e indexando "${uploadedFile.name}" en la base de conocimiento vectorial de la sala... ¡Listo! Ya puedes hacerme preguntas sobre este documento.` }
+        ...prev,
+        { id: Date.now(), sender: 'ia', text: `✅ "${uploadedDoc.title}" quedó indexado. Ya puedes hacerme preguntas sobre este documento.` }
       ]);
+
+      // Intentamos traer el resumen generado por el backend.
+      // Si el documento todavía se está procesando del lado del servidor,
+      // simplemente lo omitimos sin romper el flujo del chat.
+      try {
+        const summary = await documentsApi.getSummary(uploadedDoc.id);
+        setMessages((prev) => [
+          ...prev,
+          { id: Date.now() + 1, sender: 'ia', text: `📄 Resumen de "${uploadedDoc.title}":\n${summary.content}` }
+        ]);
+      } catch {
+        // El resumen puede no estar listo aún; no es un error crítico.
+      }
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        { id: Date.now(), sender: 'ia', text: `⚠️ No pude subir "${uploadedFile.name}". Intenta de nuevo en un momento.` }
+      ]);
+    } finally {
+      setIsUploading(false);
+      // Permite volver a seleccionar el mismo archivo si hace falta reintentar
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
   const triggerFileSelect = () => {
     fileInputRef.current?.click();
+  };
+
+  // Click en un recurso: pide la URL real de descarga y la abre en pestaña nueva
+  const handleResourceClick = async (resourceId: string) => {
+    try {
+      const { url } = await documentsApi.getDownloadUrl(resourceId);
+      window.open(url, '_blank');
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        { id: Date.now(), sender: 'ia', text: `⚠️ No pude obtener el link de descarga de ese documento.` }
+      ]);
+    }
+  };
+
+  // Borra el documento en el backend y lo quita del panel de recursos
+  const handleResourceDelete = async (e: React.MouseEvent, resourceId: string, resourceName: string) => {
+    e.stopPropagation(); // Evita que también dispare el click de descarga
+
+    const confirmed = window.confirm(`¿Borrar "${resourceName}"? Esta acción no se puede deshacer.`);
+    if (!confirmed) return;
+
+    setDeletingId(resourceId);
+    try {
+      await documentsApi.delete(resourceId);
+      setResources((prev) => prev.filter((r) => r.id !== resourceId));
+      setMessages((prev) => [
+        ...prev,
+        { id: Date.now(), sender: 'ia', text: `🗑️ "${resourceName}" fue eliminado de la base de conocimiento de la sala.` }
+      ]);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        { id: Date.now(), sender: 'ia', text: `⚠️ No pude borrar "${resourceName}". Intenta de nuevo.` }
+      ]);
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -128,6 +202,7 @@ export const AIChatRoom: React.FC = () => {
             <button
               type="button"
               onClick={triggerFileSelect}
+              disabled={isUploading}
               className="p-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-colors shrink-0"
               title="Subir PDF, Presentaciones o Apuntes"
             >
@@ -162,11 +237,27 @@ export const AIChatRoom: React.FC = () => {
         
         <div className="space-y-3 flex-1 overflow-y-auto">
           {resources.map((res) => (
-            <div key={res.id} className="p-3 bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-between gap-2">
+            <div
+              key={res.id}
+              onClick={() => handleResourceClick(res.id)}
+              className="p-3 bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-between gap-2 cursor-pointer hover:bg-gray-100 transition-colors"
+              title={`Descargar ${res.name}`}
+            >
               <span className="text-xs font-medium text-gray-700 truncate" title={res.name}>
                 {res.name}
               </span>
-              <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-bold shrink-0">RAG</span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-bold">RAG</span>
+                <button
+                  type="button"
+                  onClick={(e) => handleResourceDelete(e, res.id, res.name)}
+                  disabled={deletingId === res.id}
+                  className="text-gray-400 hover:text-red-600 font-bold text-xs w-4 h-4 flex items-center justify-center transition-colors disabled:opacity-50"
+                  title={`Borrar ${res.name}`}
+                >
+                  {deletingId === res.id ? '…' : '✕'}
+                </button>
+              </div>
             </div>
           ))}
         </div>

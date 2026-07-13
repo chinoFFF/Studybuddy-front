@@ -1,7 +1,10 @@
 // pages/StudentDashboard.tsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CreateRoomModal } from '../components/CreateRoomModal';
+import { StudyRoomCard } from '../components/StudyRoomCard';
+// import { organizationsApi } from '../api/organizations.api';
+// import type { Organization } from '../types/organization';
 
 const MOCK_PROGRESS = {
   currentStreak: 5,
@@ -10,14 +13,26 @@ const MOCK_PROGRESS = {
   completionRate: 75,
 };
 
-const MOCK_ROOMS = [
-  { id: '1', name: 'Introducción a Inteligencia Artificial', description: 'Sala dedicada al estudio de Redes Neuronales, Procesamiento de Lenguaje Natural y arquitectura de embeddings.', memberCount: 14, documentCount: 5 },
-  { id: '2', name: 'Estructuras de Datos y Algoritmos', description: 'Análisis de complejidad asintótica (Big O), árboles binarios de búsqueda, grafos y optimización de memoria.', memberCount: 8, documentCount: 3 },
-  { id: '3', name: 'Desarrollo Web Integral (FastAPI + React)', description: 'Coordinación del proyecto de fin de curso. Repaso de TypeScript, Tailwind CSS y validaciones con Pydantic.', memberCount: 22, documentCount: 12 },
-];
-
 export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
+  // const [rooms, setRooms] = useState<Organization[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  // useEffect(() => {
+  //   const fetchRooms = async () => {
+  //     try {
+  //       setLoading(true);
+  //       const data = await organizationsApi.getAll();
+  //       setRooms(data);
+  //     } catch (error) {
+  //       console.error("Error al cargar las salas:", error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+
+  //   fetchRooms();
+  // }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 font-sans">
@@ -71,29 +86,33 @@ export const StudentDashboard: React.FC = () => {
           <CreateRoomModal />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {MOCK_ROOMS.map((room) => (
-            <div key={room.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow flex flex-col justify-between">
-              <div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2">{room.name}</h3>
-                <p className="text-gray-600 text-sm mb-4 line-clamp-2">{room.description}</p>
-              </div>
-              <div>
-                <div className="flex items-center justify-between border-t border-gray-100 pt-4 text-xs text-gray-500">
-                  <span>👥 {room.memberCount} Miembros</span>
-                  <span>📄 {room.documentCount} Documentos</span>
-                </div>
-                {/* Redirección al Chat con react-router-dom */}
-                <button
-                  onClick={() => navigate('/AIChatRoom')}
-                  className="mt-4 w-full py-2 bg-gray-50 hover:bg-indigo-50 text-indigo-700 font-medium rounded-lg text-sm transition-colors text-center border border-gray-100"
-                >
-                  Entrar a Estudiar
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* {loading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+            <p className="text-gray-500 font-medium">Consultando salas con el servidor...</p>
+          </div>
+        ) : rooms.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+            <p className="text-gray-500 text-lg mb-4">No tienes ninguna sala de estudio creada todavía.</p>
+            <CreateRoomModal
+              buttonLabel="Crear tu primera sala"
+              buttonClassName="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-lg transition"
+            />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {rooms.map((room) => (
+              <StudyRoomCard
+                key={room.id}
+                name={room.name}
+                description={room.description ?? 'Sala de estudio con IA.'}
+                memberCount={room.member_count ?? 0}
+                documentCount={room.document_count ?? 0}
+                onEnter={() => navigate('/AIChatRoom')}
+              />
+            ))}
+          </div>
+        )} */}
       </section>
 
     </div>

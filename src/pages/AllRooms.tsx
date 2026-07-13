@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { CreateRoomModal } from '../components/CreateRoomModal';
 import { OrganizationCard } from '../components/OrganizationCard';
 import { organizationService } from '../services/organizationService';
@@ -7,11 +8,12 @@ import type { OrganizationResponse } from '../types/organization';
 
 export const AllRooms: React.FC = () => {
   const [rooms, setRooms] = useState<OrganizationResponse[]>([]);
+
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
 
   const navigate = useNavigate();
-
+  
   const fetchRooms = useCallback(async () => {
     try {
       setLoading(true);
@@ -25,6 +27,7 @@ export const AllRooms: React.FC = () => {
       setLoading(false);
     }
   }, []);
+
 
   useEffect(() => {
     void fetchRooms();
@@ -42,7 +45,7 @@ export const AllRooms: React.FC = () => {
           <CreateRoomModal onCreated={fetchRooms} />
         </div>
       </div>
-
+      
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
@@ -81,7 +84,7 @@ export const AllRooms: React.FC = () => {
             </div>
           ))}
         </div>
-      )}
+      )}*/}
     </div>
   );
 };
