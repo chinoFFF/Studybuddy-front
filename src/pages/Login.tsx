@@ -4,7 +4,10 @@ import '../styles/auth.css';
 import { Link,useNavigate } from 'react-router-dom';
 import { login } from '../utils/auth';
 import { authApi } from '../api/auth.api';
+import { apiClient } from '../api/client';
+import { organizationService } from '../services/organizationService';
 import { useGoogleAuth } from '../hooks/useGoogleAuth';
+
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -49,6 +52,22 @@ export const Login: React.FC = () => {
       });
 
       login(access_token);    // Guarda el token real del backend
+
+      // Si hay una invitación pendiente (visitante no autenticado siguió link), procesarla
+      const pendingInvite = localStorage.getItem('invite_token');
+      if (pendingInvite) {
+        try {
+          const { data: me } = await apiClient.get('/auth/me');
+          await organizationService.acceptInvitation({ token: pendingInvite, user_id: me.id });
+          localStorage.removeItem('invite_token');
+          navigate('/mis-salas');
+          return;
+        } catch (err) {
+          // Si falla la aceptación, limpiamos el token pendiente y continuamos al dashboard
+          localStorage.removeItem('invite_token');
+        }
+      }
+
       navigate('/dashboard'); // Redirige al dashboard tras un login exitoso
 
     } catch (error) {
