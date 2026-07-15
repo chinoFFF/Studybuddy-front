@@ -25,7 +25,11 @@ export interface ChatSession {
   user_id: string;
   room_id: string;
   name: string;
-  document_ids: string[];
+  documents: {
+    id: string;
+    title: string;
+    status?: string;
+  }[];
   started_at?: string;
 }
 

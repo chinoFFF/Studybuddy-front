@@ -118,10 +118,17 @@ export const AIChatRoom: React.FC = () => {
           setSessionId(latest.id);
           setSessionName(latest.name);
           setIsSessionReady(true);
-          await Promise.all([
-            loadResourcesFromSession(latest.document_ids ?? []),
-            loadMessageHistory(latest.id),
-          ]);
+          if (latest.documents && latest.documents.length > 0) {
+            const loadedResources = latest.documents.map((doc: any) => ({
+              id: doc.id,
+              name: doc.title || doc.id
+            }));
+            setResources(loadedResources);
+          } else {
+            setResources([]);
+          }
+
+          await loadMessageHistory(latest.id);
           return;
         }
 
