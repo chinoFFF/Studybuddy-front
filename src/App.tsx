@@ -62,6 +62,17 @@ function App() {
                 }
               />
               <Route
+                path="/flashcards/:deckId"
+                element={
+                  <div className="flex min-h-screen w-full">
+                    <Sidebar />
+                    <div className="flex-1 min-w-0">
+                      <FlashcardsPage />
+                    </div>
+                  </div>
+                }
+              />
+              <Route
                 path="/examenes"
                 element={
                   <div className="flex min-h-screen w-full">

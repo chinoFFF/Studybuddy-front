@@ -7,8 +7,10 @@ import { organizationService } from '../services/organizationService';
 import { getRoomIdFromOrganization } from '../utils/room';
 import { progressApi } from '../api/progress.api';
 import { calculateStreak, sumStudyHours } from '../utils/progress';
+import { flashcardsApi } from '../api/flashcards.api';
 import type { OrganizationResponse } from '../types/organization';
 import type { ProgressSummary, UnseenFlashcardDeck } from '../types/progress';
+import type { FlashcardDeck } from '../types/flashcards';
 
 export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -24,6 +26,9 @@ export const StudentDashboard: React.FC = () => {
 
   const [unseenFlashcards, setUnseenFlashcards] = useState<UnseenFlashcardDeck[]>([]);
   const [flashcardsLoading, setFlashcardsLoading] = useState<boolean>(true);
+
+  const [recentDecks, setRecentDecks] = useState<FlashcardDeck[]>([]);
+  const [recentDecksLoading, setRecentDecksLoading] = useState<boolean>(true);
 
   const fetchRooms = useCallback(async () => {
     try {
@@ -68,15 +73,30 @@ export const StudentDashboard: React.FC = () => {
     }
   }, []);
 
+  const fetchRecentDecks = useCallback(async () => {
+    try {
+      setRecentDecksLoading(true);
+      const decks = await flashcardsApi.listDecks();
+      // El backend no regresa fecha de creación en este endpoint; asumimos que
+      // vienen en orden de creación (más nuevos al final) y tomamos los últimos 3.
+      setRecentDecks(decks.slice(-3).reverse());
+    } catch (err) {
+      console.error('Error al cargar flashcards recientes:', err);
+    } finally {
+      setRecentDecksLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void fetchRooms();
     void fetchProgress();
     void fetchUnseenFlashcards();
+    void fetchRecentDecks();
 
     // Registra actividad de hoy al entrar al dashboard.
     // Silencioso: si falla, no afecta el resto de la pantalla.
     progressApi.ping().catch((err) => console.error('Error al registrar actividad:', err));
-  }, [fetchRooms, fetchProgress, fetchUnseenFlashcards]);
+  }, [fetchRooms, fetchProgress, fetchUnseenFlashcards, fetchRecentDecks]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 font-sans">
@@ -142,22 +162,32 @@ export const StudentDashboard: React.FC = () => {
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {unseenFlashcards.map((deck) => (
               <div
                 key={deck.id}
-                className="bg-white rounded-xl border border-indigo-100  p-5 flex flex-col justify-between"
+                onClick={() => navigate(`/flashcards/${deck.id}`)}
+                className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 cursor-pointer hover:shadow-md hover:border-orange-300 transition group"
               >
-                <div>
-                  <h3 className="font-bold text-gray-800 mb-1">{deck.title}</h3>
-                  <p className="text-sm text-gray-600 line-clamp-2">{deck.description}</p>
+                <div className="flex items-center mb-4">
+                  <span className="bg-orange-50 text-orange-500 p-3 rounded-xl group-hover:bg-orange-500 group-hover:text-white transition">
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                  </span>
                 </div>
-                <button
-                  onClick={() => navigate(`/AIChatRoom/${deck.room_id}`)}
-                  className="mt-4 w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors"
-                >
-                  Repasar ahora
-                </button>
+                <h3 className="text-lg font-bold text-gray-800 mb-1">{deck.title}</h3>
+                {deck.description && (
+                  <p className="text-sm text-gray-500 line-clamp-2 mb-4">{deck.description}</p>
+                )}
+                <div className="flex items-center justify-end">
+                  <span className="text-orange-600 font-medium text-sm flex items-center opacity-0 group-hover:opacity-100 transition">
+                    Repasar
+                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </span>
+                </div>
               </div>
             ))}
           </div>
@@ -165,10 +195,18 @@ export const StudentDashboard: React.FC = () => {
       )}
 
       {/* SECCIÓN 3: LISTADO DE SALAS */}
-      <section>
+      <section className="mb-10">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-semibold text-gray-800">Mis Salas de Estudio</h2>
-          <CreateRoomModal onCreated={fetchRooms} />
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate('/mis-salas')}
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition"
+            >
+              Ver todas →
+            </button>
+            <CreateRoomModal onCreated={fetchRooms} />
+          </div>
         </div>
 
         {loading ? (
@@ -197,7 +235,7 @@ export const StudentDashboard: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {rooms.map((room) => (
+            {rooms.slice(0, 3).map((room) => (
               <div key={room.id} className="space-y-3">
                 <OrganizationCard organization={room} onUpdated={fetchRooms} />
                 <button
@@ -211,6 +249,43 @@ export const StudentDashboard: React.FC = () => {
           </div>
         )}
       </section>
+
+      {/* SECCIÓN 4: ÚLTIMAS FLASHCARDS CREADAS */}
+      {!recentDecksLoading && recentDecks.length > 0 && (
+        <section>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-semibold text-gray-800">Últimas Flashcards Creadas</h2>
+            <button
+              onClick={() => navigate('/flashcards')}
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition"
+            >
+              Ver todas →
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {recentDecks.map((deck) => (
+              <div
+                key={deck.id}
+                onClick={() => navigate(`/flashcards/${deck.id}`)}
+                className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 cursor-pointer hover:shadow-md hover:border-indigo-300 transition group"
+              >
+                <div className="flex items-center mb-4">
+                  <span className="bg-indigo-50 text-indigo-500 p-3 rounded-xl group-hover:bg-indigo-500 group-hover:text-white transition">
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-gray-800 mb-1">{deck.title}</h3>
+                {deck.description && (
+                  <p className="text-sm text-gray-500 line-clamp-2">{deck.description}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
     </div>
   );

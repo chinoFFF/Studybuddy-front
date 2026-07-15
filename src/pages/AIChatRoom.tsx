@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { documentsApi } from '../api/documents.api';
 import { chatApi } from '../api/chat.api';
+import { GenerateFlashcardsModal } from '../components/GenerateFlashcardsModal';
 
 const DEFAULT_SESSION_NAME = 'Sesión de estudio';
 
@@ -37,7 +38,7 @@ export const AIChatRoom: React.FC = () => {
   const [sessionName, setSessionName] = useState(DEFAULT_SESSION_NAME);
   const [isSessionReady, setIsSessionReady] = useState(false);
 
-  const [roomName, setRoomName] = useState<string | null>(roomNameFromNav);
+  const [roomName] = useState<string | null>(roomNameFromNav);
 
   const [resources, setResources] = useState<Resource[]>([]);
 
@@ -438,9 +439,16 @@ export const AIChatRoom: React.FC = () => {
         </div>
 
         <div className="pt-4 border-t border-gray-100 space-y-2">
-          <button type="button" className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-lg transition-colors">
-            📝 Generar Flashcards
-          </button>
+          <GenerateFlashcardsModal
+            documents={resources}
+            onGenerated={(deck) => {
+              setMessages((prev) => [
+                ...prev,
+                { id: `deck-${deck.id}`, sender: 'ia', text: `📝 Generé el mazo "${deck.title}" con ${deck.flashcards.length} tarjetas. Te llevo a repasarlo.` }
+              ]);
+              navigate(`/flashcards/${deck.id}`);
+            }}
+          />
           <button type="button" className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-lg transition-colors">
             ⏱️ Iniciar Simulacro Examen
           </button>
