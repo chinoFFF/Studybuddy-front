@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
+import { AcceptInvitation } from './pages/AcceptInvitation';
 import './styles/auth.css';
 import './App.css';
 import { ProtectedRoute } from './layouts/ProtectedRoute';
@@ -20,6 +21,11 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Navigate to="/login" replace />} />
+
+            {/* Ruta independiente: AcceptInvitation maneja internamente
+                si el usuario ya tiene sesión o no. */}
+            <Route path="/invitations/accept" element={<AcceptInvitation />} />
+
             <Route element={<ProtectedRoute />}>
               <Route path="/sidebar" element={<Sidebar />} />
               <Route
@@ -56,6 +62,17 @@ function App() {
                 }
               />
               <Route
+                path="/flashcards/:deckId"
+                element={
+                  <div className="flex min-h-screen w-full">
+                    <Sidebar />
+                    <div className="flex-1 min-w-0">
+                      <FlashcardsPage />
+                    </div>
+                  </div>
+                }
+              />
+              <Route
                 path="/examenes"
                 element={
                   <div className="flex min-h-screen w-full">
@@ -66,8 +83,10 @@ function App() {
                   </div>
                 }
               />
+              {/* :roomId es obligatorio ahora — AIChatRoom lo necesita para
+                  crear la sesión de chat (room_id) y subir documentos. */}
               <Route
-                path="/AIChatRoom"
+                path="/AIChatRoom/:roomId"
                 element={
                   <div className="flex min-h-screen w-full">
                     <Sidebar />

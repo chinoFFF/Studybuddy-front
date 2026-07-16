@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { InputField } from '../components/InputField';
 import '../styles/auth.css';
+import { login } from '../utils/auth';
+import { authApi } from '../api/auth.api';
+import { useGoogleAuth } from '../hooks/useGoogleAuth';
 
 export const Register: React.FC = () => {
+  const navigate = useNavigate();
+  const { triggerGoogleSignIn } = useGoogleAuth();
   const [formData, setFormData] = useState({ 
     name: '', 
     email: '', 
@@ -64,14 +69,21 @@ export const Register: React.FC = () => {
     if (!validateForm()) return;
 
     try {
-      console.log('Payload de registro sanitizado y listo:', formData);
+      const { access_token } = await authApi.register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      });
+
+      login(access_token);
+      navigate('/dashboard');
     } catch (error) {
       setErrors({ ...errors, general: 'Hubo un error al procesar tu registro. Intenta de nuevo.' });
     }
   };
 
   const handleGoogleSignup = () => {
-    console.log('Iniciando flujo de registro con Google OAuth...');
+    triggerGoogleSignIn();
   };
 
   return (

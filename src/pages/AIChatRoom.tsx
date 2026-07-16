@@ -1,63 +1,234 @@
 // pages/AIChatRoom.tsx
-import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { documentsApi } from '../api/documents.api';
+import { chatApi } from '../api/chat.api';
+import { GenerateFlashcardsModal } from '../components/GenerateFlashcardsModal';
+
+const DEFAULT_SESSION_NAME = 'Sesión de estudio';
+
+interface DisplayMessage {
+  id: string;
+  sender: 'ia' | 'user';
+  text: string;
+  canRegenerate?: boolean;
+}
+
+interface Resource {
+  id: string;
+  name: string;
+}
 
 export const AIChatRoom: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { roomId } = useParams<{ roomId: string }>();
+  const roomNameFromNav = (location.state as { roomName?: string } | null)?.roomName ?? null;
 
-  const [messages, setMessages] = useState([
-    { id: 1, sender: 'ia', text: '¡Hola! Bienvenido a tu sala de estudio optimizada con IA. ¿En qué concepto u objetivo de tus lecturas te gustaría profundizar hoy?' },
+  const [messages, setMessages] = useState<DisplayMessage[]>([
+    { id: 'welcome', sender: 'ia', text: '¡Hola! Bienvenido a tu sala de estudio optimizada con IA. ¿En qué concepto u objetivo de tus lecturas te gustaría profundizar hoy?' },
   ]);
   const [input, setInput] = useState('');
   const [isThinking, setIsThinking] = useState(false);
-  
-  // Estado para manejar dinámicamente los recursos vinculados
-  const [resources, setResources] = useState([
-    { id: 1, name: 'Documentacion_Proyecto.pdf' },
-    { id: 2, name: 'Arquitectura_FastAPI.md' }
-  ]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
+
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [sessionName, setSessionName] = useState(DEFAULT_SESSION_NAME);
+  const [isSessionReady, setIsSessionReady] = useState(false);
+
+  const [roomName] = useState<string | null>(roomNameFromNav);
+
+  const [resources, setResources] = useState<Resource[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const hasInitialized = useRef(false); // Evita doble-ejecución en React StrictMode (dev)
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
+    if (!roomId) {
+      setMessages((prev) => [
+        ...prev,
+        { id: 'no-room', sender: 'ia', text: '⚠️ No se encontró la sala de estudio. Vuelve al dashboard e intenta de nuevo.' }
+      ]);
+      return;
+    }
+
+    // El nombre de la sala viene por navigation state (ver roomNameFromNav).
+    // GET /rooms/{room_id} no está disponible en el backend actual, así que
+    // no dependemos de él. Si el usuario entra por URL directa/recarga sin
+    // ese state, simplemente no se muestra el nombre (fallback silencioso).
+
+    const loadResourcesFromSession = async (documentIds: string[]) => {
+      if (documentIds.length === 0) {
+        setResources([]);
+        return;
+      }
+
+      const loaded = await Promise.all(
+        documentIds.map(async (docId) => {
+          try {
+            const summary = await documentsApi.getSummary(docId);
+            return { id: docId, name: summary.topic_name || docId };
+          } catch {
+            // El resumen puede no estar listo; igual mostramos el documento.
+            return { id: docId, name: docId };
+          }
+        })
+      );
+      setResources(loaded);
+    };
+
+    const loadMessageHistory = async (sid: string) => {
+      try {
+        const history = await chatApi.listMessages(sid);
+        if (history.length === 0) return; // Sesión sin mensajes: se queda el saludo inicial
+
+        const sorted = [...history].sort((a, b) =>
+          (a.created_at ?? '').localeCompare(b.created_at ?? '')
+        );
+
+        const mapped: DisplayMessage[] = sorted.map((m) => ({
+          id: m.id,
+          sender: m.role === 'user' ? 'user' : 'ia',
+          text: m.content,
+          canRegenerate: m.role === 'assistant',
+        }));
+
+        setMessages(mapped); // Reemplaza el saludo genérico por la conversación real
+      } catch (error) {
+        console.error('Error al cargar el historial del chat:', error);
+      }
+    };
+
+    const initSession = async () => {
+      try {
+        // Busca si ya existe una sesión de chat para esta sala, para no
+        // perder los documentos ya vinculados cada vez que se entra.
+        const existingSessions = await chatApi.listSessions();
+        const roomSessions = existingSessions
+          .filter((s) => s.room_id === roomId)
+          .sort((a, b) => (b.started_at ?? '').localeCompare(a.started_at ?? ''));
+
+        if (roomSessions.length > 0) {
+          const latest = roomSessions[0];
+          setSessionId(latest.id);
+          setSessionName(latest.name);
+          setIsSessionReady(true);
+          if (latest.documents && latest.documents.length > 0) {
+            const loadedResources = latest.documents.map((doc: any) => ({
+              id: doc.id,
+              name: doc.title || doc.id
+            }));
+            setResources(loadedResources);
+          } else {
+            setResources([]);
+          }
+
+          await loadMessageHistory(latest.id);
+          return;
+        }
+
+        // No había sesión previa: crea una nueva
+        const session = await chatApi.createSession({
+          room_id: roomId,
+          name: DEFAULT_SESSION_NAME,
+          document_ids: [],
+        });
+        setSessionId(session.id);
+        setSessionName(session.name);
+        setIsSessionReady(true);
+      } catch (error) {
+        console.error('Error al iniciar la sesión de chat:', error);
+        setMessages((prev) => [
+          ...prev,
+          { id: 'session-error', sender: 'ia', text: '⚠️ No pude iniciar la sesión de chat con el servidor. Verifica tu conexión o intenta recargar la página.' }
+        ]);
+      }
+    };
+
+    initSession();
+  }, [roomId]);
+
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isThinking) return;
+    if (!input.trim() || isThinking || !sessionId) return;
 
-    const userMsg = { id: Date.now(), sender: 'user', text: input };
+    const userText = input;
+    const userMsg: DisplayMessage = { id: `user-${Date.now()}`, sender: 'user', text: userText };
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setIsThinking(true);
 
-    setTimeout(() => {
-      const iaMsg = {
-        id: Date.now() + 1,
-        sender: 'ia',
-        text: `He procesado tu consulta sobre "${userMsg.text}". Basándome en la documentación que tenemos indexada, te sugiero segmentar el análisis. ¿Quieres programar un simulacro o revisar las flashcards de este tema?`
-      };
-      setMessages((prev) => [...prev, iaMsg]);
+    try {
+      const response = await chatApi.sendMessage(sessionId, { content: userText });
+      setMessages((prev) => [
+        ...prev,
+        { id: response.assistant_message.id, sender: 'ia', text: response.assistant_message.content, canRegenerate: true }
+      ]);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        { id: `error-${Date.now()}`, sender: 'ia', text: '⚠️ No pude procesar tu mensaje. Intenta de nuevo.' }
+      ]);
+    } finally {
       setIsThinking(false);
-    }, 1500);
+    }
   };
 
-  // Función para manejar la subida de archivos (PDF, Presentaciones o Apuntes)
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (files && files.length > 0) {
-      const uploadedFile = files[0];
-      
-      // Añadimos el archivo subido al panel lateral de recursos simulando el proceso de Backend/RAG
-      const newResource = {
-        id: Date.now(),
-        name: uploadedFile.name
-      };
-      
-      setResources((prev) => [...prev, newResource]);
-      
-      // Notificación en el chat de que el archivo fue cargado
+    if (!files || files.length === 0 || !roomId) return;
+
+    const uploadedFile = files[0];
+    setIsUploading(true);
+
+    setMessages((prev) => [
+      ...prev,
+      { id: `uploading-${Date.now()}`, sender: 'ia', text: `⏳ Procesando e indexando "${uploadedFile.name}" en la base de conocimiento vectorial de la sala...` }
+    ]);
+
+    try {
+      const uploadedDoc = await documentsApi.upload(uploadedFile, roomId);
+      const updatedResources = [...resources, { id: uploadedDoc.id, name: uploadedDoc.title }];
+      setResources(updatedResources);
+
       setMessages((prev) => [
-        ...prev, 
-        { id: Date.now(), sender: 'ia', text: `⏳ Procesando e indexando "${uploadedFile.name}" en la base de conocimiento vectorial de la sala... ¡Listo! Ya puedes hacerme preguntas sobre este documento.` }
+        ...prev,
+        { id: `uploaded-${uploadedDoc.id}`, sender: 'ia', text: `✅ "${uploadedDoc.title}" quedó indexado. Ya puedes hacerme preguntas sobre este documento.` }
       ]);
+
+      if (sessionId) {
+        try {
+          await chatApi.updateSession(sessionId, {
+            name: sessionName,
+            document_ids: updatedResources.map((r) => r.id),
+          });
+        } catch (error) {
+          console.error('Error al vincular el documento a la sesión de chat:', error);
+        }
+      }
+
+      try {
+        const summary = await documentsApi.getSummary(uploadedDoc.id);
+        setMessages((prev) => [
+          ...prev,
+          { id: `summary-${uploadedDoc.id}`, sender: 'ia', text: `📄 Resumen de "${uploadedDoc.title}":\n${summary.content}` }
+        ]);
+      } catch {
+        // El resumen puede no estar listo aún; no es un error crítico.
+      }
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        { id: `upload-error-${Date.now()}`, sender: 'ia', text: `⚠️ No pude subir "${uploadedFile.name}". Intenta de nuevo en un momento.` }
+      ]);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -65,16 +236,88 @@ export const AIChatRoom: React.FC = () => {
     fileInputRef.current?.click();
   };
 
+  const handleRegenerateMessage = async (messageId: string) => {
+    if (!sessionId || regeneratingId) return;
+
+    setRegeneratingId(messageId);
+    try {
+      const regenerated = await chatApi.regenerateMessage(sessionId, messageId);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId
+            ? { id: regenerated.id, sender: 'ia', text: regenerated.content, canRegenerate: true }
+            : m
+        )
+      );
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        { id: `regen-error-${Date.now()}`, sender: 'ia', text: '⚠️ No pude regenerar esa respuesta. Intenta de nuevo.' }
+      ]);
+    } finally {
+      setRegeneratingId(null);
+    }
+  };
+
+  const handleResourceClick = async (resourceId: string) => {
+    try {
+      const { url } = await documentsApi.getDownloadUrl(resourceId);
+      window.open(url, '_blank');
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        { id: `download-error-${Date.now()}`, sender: 'ia', text: `⚠️ No pude obtener el link de descarga de ese documento.` }
+      ]);
+    }
+  };
+
+  const handleResourceDelete = async (e: React.MouseEvent, resourceId: string, resourceName: string) => {
+    e.stopPropagation();
+
+    const confirmed = window.confirm(`¿Borrar "${resourceName}"? Esta acción no se puede deshacer.`);
+    if (!confirmed) return;
+
+    setDeletingId(resourceId);
+    try {
+      await documentsApi.delete(resourceId);
+      const updatedResources = resources.filter((r) => r.id !== resourceId);
+      setResources(updatedResources);
+
+      if (sessionId) {
+        try {
+          await chatApi.updateSession(sessionId, {
+            name: sessionName,
+            document_ids: updatedResources.map((r) => r.id),
+          });
+        } catch (error) {
+          console.error('Error al desvincular el documento de la sesión de chat:', error);
+        }
+      }
+
+      setMessages((prev) => [
+        ...prev,
+        { id: `deleted-${Date.now()}`, sender: 'ia', text: `🗑️ "${resourceName}" fue eliminado de la base de conocimiento de la sala.` }
+      ]);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        { id: `delete-error-${Date.now()}`, sender: 'ia', text: `⚠️ No pude borrar "${resourceName}". Intenta de nuevo.` }
+      ]);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="flex h-screen bg-gray-50 font-sans">
-      
+
       {/* PANEL PRINCIPAL DEL CHAT */}
       <div className="flex-1 flex flex-col h-full border-r border-gray-200">
-        
+
         {/* Encabezado del Chat */}
         <header className="p-4 bg-white border-b border-gray-200 flex items-center justify-between shadow-sm">
           <div className="flex items-center space-x-3">
-            <button 
+            <button
               onClick={() => navigate('/dashboard')}
               className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 transition-colors"
               title="Volver al Dashboard"
@@ -82,6 +325,9 @@ export const AIChatRoom: React.FC = () => {
               ← Volver
             </button>
             <div>
+              {roomName && (
+                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">{roomName}</p>
+              )}
               <h2 className="text-lg font-bold text-gray-800 flex items-center gap-1.5">
                 <span>✨</span> Tutor Inteligente Gemini
               </h2>
@@ -93,11 +339,23 @@ export const AIChatRoom: React.FC = () => {
         {/* Zona de Mensajes */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
           {messages.map((msg) => (
-            <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[75%] rounded-2xl p-4 shadow-sm text-sm ${
+            <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} group`}>
+              <div className={`relative max-w-[75%] rounded-2xl p-4 shadow-sm text-sm ${
                 msg.sender === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none'
               }`}>
                 <p className="leading-relaxed whitespace-pre-line">{msg.text}</p>
+
+                {msg.canRegenerate && (
+                  <button
+                    type="button"
+                    onClick={() => handleRegenerateMessage(msg.id)}
+                    disabled={regeneratingId === msg.id}
+                    title="Regenerar respuesta"
+                    className="absolute -bottom-3 -right-3 w-7 h-7 flex items-center justify-center rounded-full bg-white border border-gray-200 shadow-sm text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    {regeneratingId === msg.id ? '…' : '🔄'}
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -114,20 +372,19 @@ export const AIChatRoom: React.FC = () => {
         {/* Formulario de Entrada con Botón de Archivos */}
         <footer className="p-4 bg-white border-t border-gray-200">
           <form onSubmit={handleSendMessage} className="flex gap-3 items-center">
-            
-            {/* Input File oculto controlado por referencia */}
-            <input 
-              type="file" 
+
+            <input
+              type="file"
               ref={fileInputRef}
               onChange={handleFileChange}
               accept=".pdf, .ppt, .pptx, .txt, .doc, .docx"
-              className="hidden" 
+              className="hidden"
             />
 
-            {/* NUEVO BOTÓN DE ADJUNTAR ARCHIVO */}
             <button
               type="button"
               onClick={triggerFileSelect}
+              disabled={isUploading}
               className="p-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl transition-colors shrink-0"
               title="Subir PDF, Presentaciones o Apuntes"
             >
@@ -138,13 +395,14 @@ export const AIChatRoom: React.FC = () => {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Pregúntale a la IA sobre tus documentos o código..."
-              className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-800 bg-gray-50"
+              placeholder={isSessionReady ? "Pregúntale a la IA sobre tus documentos o código..." : "Iniciando sesión de chat..."}
+              disabled={!isSessionReady}
+              className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-800 bg-gray-50 disabled:opacity-60"
             />
-            
+
             <button
               type="submit"
-              disabled={!input.trim() || isThinking}
+              disabled={!input.trim() || isThinking || !isSessionReady}
               className="px-5 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white font-semibold rounded-xl transition-colors text-sm shadow-sm shrink-0"
             >
               Enviar
@@ -159,22 +417,45 @@ export const AIChatRoom: React.FC = () => {
           📁 Recursos Vinculados
         </h3>
         <p className="text-xs text-gray-500 mb-6">Todos los documentos indexados en esta sala son analizados por la IA.</p>
-        
+
         <div className="space-y-3 flex-1 overflow-y-auto">
           {resources.map((res) => (
-            <div key={res.id} className="p-3 bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-between gap-2">
+            <div
+              key={res.id}
+              onClick={() => handleResourceClick(res.id)}
+              className="p-3 bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-between gap-2 cursor-pointer hover:bg-gray-100 transition-colors"
+              title={`Descargar ${res.name}`}
+            >
               <span className="text-xs font-medium text-gray-700 truncate" title={res.name}>
                 {res.name}
               </span>
-              <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-bold shrink-0">RAG</span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-bold">RAG</span>
+                <button
+                  type="button"
+                  onClick={(e) => handleResourceDelete(e, res.id, res.name)}
+                  disabled={deletingId === res.id}
+                  className="text-gray-400 hover:text-red-600 font-bold text-xs w-4 h-4 flex items-center justify-center transition-colors disabled:opacity-50"
+                  title={`Borrar ${res.name}`}
+                >
+                  {deletingId === res.id ? '…' : '✕'}
+                </button>
+              </div>
             </div>
           ))}
         </div>
 
         <div className="pt-4 border-t border-gray-100 space-y-2">
-          <button type="button" className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-lg transition-colors">
-            📝 Generar Flashcards
-          </button>
+          <GenerateFlashcardsModal
+            documents={resources}
+            onGenerated={(deck) => {
+              setMessages((prev) => [
+                ...prev,
+                { id: `deck-${deck.id}`, sender: 'ia', text: `📝 Generé el mazo "${deck.title}" con ${deck.flashcards.length} tarjetas. Te llevo a repasarlo.` }
+              ]);
+              navigate(`/flashcards/${deck.id}`);
+            }}
+          />
           <button type="button" className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-lg transition-colors">
             ⏱️ Iniciar Simulacro Examen
           </button>
