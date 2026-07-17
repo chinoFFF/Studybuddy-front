@@ -13,6 +13,7 @@ import { FlashcardsPage } from './pages/FlashcardsPage';
 import { Examenes } from './pages/Examenes';
 import { AllRooms } from './pages/AllRooms';
 import { AIChatRoom } from './pages/AIChatRoom';
+import { QuizSession } from './pages/QuizSession';
 
 function App() {
   return (
@@ -92,6 +93,17 @@ function App() {
                     <Sidebar />
                     <div className="flex-1 min-w-0">
                       <AIChatRoom />
+                    </div>
+                  </div>
+                }
+              />
+              <Route
+                path="/quizzes/:quizId"
+                element={
+                  <div className="flex min-h-screen w-full">
+                    <Sidebar />
+                    <div className="flex-1 min-w-0">
+                      <QuizSession />
                     </div>
                   </div>
                 }

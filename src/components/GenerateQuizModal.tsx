@@ -1,5 +1,6 @@
 // components/GenerateQuizModal.tsx
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { quizzesApi } from '../api/quizzes.api';
 import type { QuizResponse } from '../types/quiz';
 
@@ -17,6 +18,7 @@ export const GenerateQuizModal: React.FC<GenerateQuizModalProps> = ({
   documents,
   onGenerated,
 }) => {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [documentId, setDocumentId] = useState('');
   const [numQuestions, setNumQuestions] = useState(5);
@@ -142,10 +144,15 @@ export const GenerateQuizModal: React.FC<GenerateQuizModalProps> = ({
                     </p>
                   </div>
                   <button
-                    onClick={handleClose}
+                    onClick={() => {
+                      handleClose();
+                      if (generatedQuiz) {
+                        navigate(`/quizzes/${generatedQuiz.id}`);
+                      }
+                    }}
                     className="mt-2 w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition-colors shadow-sm"
                   >
-                    Listo
+                    Empezar Quiz
                   </button>
                 </div>
               )}
