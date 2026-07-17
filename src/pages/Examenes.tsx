@@ -1,64 +1,119 @@
-import React from 'react';
-import { InteractiveQuiz } from '../components/InteractiveQuiz';
-import type { Exam } from '../types/type';
-
-// Estructura simulada del JSON que el servidor (IA) enviará
-const mockExam: Exam = {
-  id: 'exam-001',
-  title: 'Examen de Repaso: Inteligencia Artificial',
-  description: 'Cuestionario generado automáticamente a partir de los documentos de tu sala de estudio.',
-  questions: [
-    {
-      id: 'q1',
-      type: 'multiple_choice',
-      prompt: '¿Qué técnica permite reducir la dimensionalidad preservando la mayor varianza posible?',
-      options: [
-        'K-Means',
-        'Análisis de Componentes Principales (PCA)',
-        'Regresión Lineal',
-        'K-Nearest Neighbors',
-      ],
-      correctOptionIndex: 1,
-      explanation:
-        'PCA proyecta los datos sobre los ejes de mayor varianza, reduciendo dimensiones sin perder información relevante.',
-      points: 25,
-    },
-    {
-      id: 'q2',
-      type: 'true_false',
-      prompt: 'El overfitting ocurre cuando el modelo generaliza bien a datos no vistos.',
-      correctAnswer: false,
-      explanation:
-        'El overfitting es justo lo contrario: el modelo memoriza los datos de entrenamiento y falla al generalizar.',
-      points: 25,
-    },
-    {
-      id: 'q3',
-      type: 'open',
-      prompt: 'Explica brevemente qué es el descenso de gradiente y su rol en el entrenamiento de redes neuronales.',
-      acceptedKeywords: ['optimización', 'minimizar', 'pérdida', 'parámetros', 'aprendizaje'],
-      modelAnswer:
-        'El descenso de gradiente es un algoritmo de optimización que ajusta los parámetros minimizando la función de pérdida iterativamente.',
-      explanation:
-        'El descenso de gradiente actualiza los pesos en dirección contraria al gradiente de la función de pérdida.',
-      points: 25,
-    },
-    {
-      id: 'q4',
-      type: 'multiple_choice',
-      prompt: '¿Cuál de los siguientes es un modelo de lenguaje basado en transformers?',
-      options: ['ResNet', 'BERT', 'VGG16', 'YOLO'],
-      correctOptionIndex: 1,
-      explanation: 'BERT (Bidirectional Encoder Representations from Transformers) es un modelo de lenguaje basado en la arquitectura transformer.',
-      points: 25,
-    },
-  ],
-};
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { quizzesApi } from '../api/quizzes.api';
+import type { AttemptSummary } from '../types/quiz';
 
 export const Examenes: React.FC = () => {
+  const navigate = useNavigate();
+  const [attempts, setAttempts] = useState<AttemptSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>('');
+
+  useEffect(() => {
+    const loadAttempts = async () => {
+      try {
+        const data = await quizzesApi.getMyAttempts();
+        setAttempts(data);
+      } catch (err) {
+        console.error('Error loading attempts:', err);
+        setError('No se pudieron cargar los intentos de quizzes');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadAttempts();
+  }, []);
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Cargando historial...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center p-8 bg-white rounded-2xl shadow-sm border border-gray-200 max-w-md">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 p-5 ">
-      <InteractiveQuiz exam={mockExam} />
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-4xl mx-auto">
+        <header className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-800">Historial de Quizzes</h1>
+          <p className="text-gray-600 mt-1">Revisa tus intentos de quizzes anteriores</p>
+        </header>
+
+        {attempts.length === 0 ? (
+          <div className="text-center p-12 bg-white rounded-2xl shadow-sm border border-gray-200">
+            <div className="text-6xl mb-4">📚</div>
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">No hay quizzes aún</h3>
+            <p className="text-gray-600 mb-6">
+              Ve a una sala de estudio y genera un quiz para empezar!
+            </p>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-semibold"
+            >
+              Ir al Dashboard
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {attempts.map((attempt) => (
+              <div
+                key={attempt.attempt_id}
+                className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 cursor-pointer hover:shadow-md hover:border-indigo-300 transition"
+                onClick={() => navigate(`/quizzes/${attempt.quiz_id}`)}
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-800">{attempt.quiz_title}</h3>
+                    <p className="text-gray-500 text-sm mt-1">
+                      {attempt.is_finished ? 'Completado' : 'En progreso'} · {formatDate(attempt.started_at)}
+                    </p>
+                  </div>
+                  {attempt.is_finished && (
+                    <div className="text-right">
+                      <div className={`text-3xl font-bold ${
+                        attempt.score >= 70 ? 'text-green-600' : attempt.score >= 50 ? 'text-amber-600' : 'text-red-600'
+                      }`}>
+                        {Math.round(attempt.score)}%
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
