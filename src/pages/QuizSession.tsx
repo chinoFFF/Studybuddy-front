@@ -15,6 +15,8 @@ export const QuizSession: React.FC = () => {
   const [submitting, setSubmitting] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string>('');
 
+  const getStorageKey = () => `quiz_attempt_${quizId}`;
+
   const loadQuiz = useCallback(async () => {
     if (!quizId) return;
     try {
@@ -30,9 +32,24 @@ export const QuizSession: React.FC = () => {
 
   const startAttempt = useCallback(async () => {
     if (!quizId) return;
+    
+    // Check if we have an existing attempt in localStorage
+    const storedAttemptJson = localStorage.getItem(getStorageKey());
+    if (storedAttemptJson) {
+      try {
+        const storedAttempt = JSON.parse(storedAttemptJson) as StartAttemptResponse;
+        setAttempt(storedAttempt);
+        return;
+      } catch {
+        // Invalid stored data, proceed to create new
+      }
+    }
+
     try {
       const data = await quizzesApi.startAttempt(quizId);
       setAttempt(data);
+      // Store the attempt in localStorage
+      localStorage.setItem(getStorageKey(), JSON.stringify(data));
     } catch (err) {
       console.error('Error starting attempt:', err);
       setError('No se pudo iniciar el intento del quiz');
@@ -73,6 +90,8 @@ export const QuizSession: React.FC = () => {
     try {
       const data = await quizzesApi.finishAttempt(attempt.attempt_id);
       setResult(data);
+      // Clear the stored attempt since we're done
+      localStorage.removeItem(getStorageKey());
     } catch (err) {
       console.error('Error finishing quiz:', err);
       setError('No se pudo finalizar el quiz');

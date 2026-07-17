@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { quizzesApi } from '../api/quizzes.api';
-import type { QuizResponse } from '../types/quiz';
+import type { QuizResponse, StartAttemptResponse } from '../types/quiz';
 
 interface DocumentOption {
   id: string;
@@ -55,10 +55,19 @@ export const GenerateQuizModal: React.FC<GenerateQuizModalProps> = ({
     setError('');
 
     try {
+      // 1. Generate the quiz
       const quiz = await quizzesApi.generate({
         document_id: documentId,
         num_questions: numQuestions,
       });
+      
+      // 2. Start the attempt immediately so it shows up in the history
+      const attempt = await quizzesApi.startAttempt(quiz.id);
+      
+      // 3. Store the attempt in localStorage
+      const storageKey = `quiz_attempt_${quiz.id}`;
+      localStorage.setItem(storageKey, JSON.stringify(attempt));
+      
       setGeneratedQuiz(quiz);
       onGenerated?.(quiz);
     } catch (err) {
