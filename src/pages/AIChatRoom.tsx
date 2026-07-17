@@ -3,7 +3,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { documentsApi } from '../api/documents.api';
 import { chatApi } from '../api/chat.api';
+import { quizzesApi } from '../api/quizzes.api';
 import { GenerateFlashcardsModal } from '../components/GenerateFlashcardsModal';
+import { GenerateQuizModal } from '../components/GenerateQuizModal';
 
 const DEFAULT_SESSION_NAME = 'Sesión de estudio';
 
@@ -456,9 +458,16 @@ export const AIChatRoom: React.FC = () => {
               navigate(`/flashcards/${deck.id}`);
             }}
           />
-          <button type="button" className="w-full py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs rounded-lg transition-colors">
-            ⏱️ Iniciar Simulacro Examen
-          </button>
+          <GenerateQuizModal
+            documents={resources}
+            onGenerated={(quiz) => {
+              setMessages((prev) => [
+                ...prev,
+                { id: `quiz-${quiz.id}`, sender: 'ia', text: `📝 Generé el quiz "${quiz.title}" con ${quiz.questions.length} preguntas sobre ${quiz.topic}.` }
+              ]);
+              // TODO: Navegar a la página del quiz
+            }}
+          />
         </div>
       </div>
 
