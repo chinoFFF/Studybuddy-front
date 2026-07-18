@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { quizzesApi } from '../api/quizzes.api';
 import type { QuizResponse, QuestionResponse, StartAttemptResponse, SubmitAnswerResponse, FinishAttemptResponse } from '../types/quiz';
@@ -15,6 +15,7 @@ export const QuizSession: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string>('');
+  const isStartingAttempt = useRef(false);
 
   const getStorageKey = () => `quiz_attempt_${quizId}`;
 
@@ -41,6 +42,12 @@ export const QuizSession: React.FC = () => {
   const startAttempt = useCallback(async () => {
     if (!quizId) return;
 
+    if (isStartingAttempt.current) {
+      return;
+    }
+
+    isStartingAttempt.current = true;
+
     // Check if we have an existing attempt in localStorage
     const storedAttemptJson = localStorage.getItem(getStorageKey());
     if (storedAttemptJson) {
@@ -61,6 +68,8 @@ export const QuizSession: React.FC = () => {
     } catch (err) {
       console.error('Error starting attempt:', err);
       setError('No se pudo iniciar el intento del quiz');
+    } finally {
+      isStartingAttempt.current = false;
     }
   }, [quizId]);
 
@@ -75,7 +84,7 @@ export const QuizSession: React.FC = () => {
   }, [quiz, attempt, isReviewMode, startAttempt]);
 
   const submitAnswer = async (question: QuestionResponse, selectedOption: string) => {
-    if (!attempt) return;
+    if (!attempt || answers[question.id]) return;
     setSubmitting((prev) => ({ ...prev, [question.id]: true }));
 
     try {
@@ -90,6 +99,26 @@ export const QuizSession: React.FC = () => {
       setError('No se pudo enviar la respuesta');
     } finally {
       setSubmitting((prev) => ({ ...prev, [question.id]: false }));
+    }
+  };
+
+  const retryQuiz = async () => {
+    if (!quizId) return;
+
+    try {
+      localStorage.removeItem(getStorageKey());
+      setError('');
+      setResult(null);
+      setAnswers({});
+      setFeedback({});
+      setSubmitting({});
+      setIsReviewMode(false);
+      setAttempt(null);
+
+      await startAttempt();
+    } catch (err) {
+      console.error('Error restarting attempt:', err);
+      setError('No se pudo reiniciar el quiz');
     }
   };
 
@@ -194,8 +223,8 @@ export const QuizSession: React.FC = () => {
                 </h3>
                 {feedback[question.id] && (
                   <span className={`text-xs font-medium px-2 py-1 rounded-full shrink-0 ml-3 ${feedback[question.id].is_correct
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-red-100 text-red-700'
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-red-100 text-red-700'
                     }`}>
                     {feedback[question.id].is_correct ? '✓ Correcto' : '✗ Incorrecto'}
                   </span>
@@ -208,33 +237,41 @@ export const QuizSession: React.FC = () => {
                   const isSubmitting = submitting[question.id];
                   const showResult = feedback[question.id];
                   const isCorrect = showResult && feedback[question.id].correct_answer === option;
+                  const selectedOption = isReviewMode && 'selected_option' in question ? question.selected_option : undefined;
                   const isReviewCorrect = isReviewMode && 'correct_answer' in question && question.correct_answer === option;
+                  const isReviewSelected = isReviewMode && selectedOption === option;
+                  const hasAnswer = answers[question.id] !== undefined;
 
                   return (
                     <button
                       key={option}
                       type="button"
-                      disabled={isReadOnlyMode || isSubmitting || isSelected}
+                      disabled={isReadOnlyMode || isSubmitting || hasAnswer}
                       onClick={() => {
                         if (!isReadOnlyMode) {
                           void submitAnswer(question, option);
                         }
                       }}
                       className={`w-full text-left px-4 py-3 rounded-lg border transition ${isReadOnlyMode
-                          ? isReviewCorrect
-                            ? 'border-green-400 bg-green-50 cursor-default'
+                        ? isReviewCorrect
+                          ? 'border-green-400 bg-green-50 cursor-default'
+                          : isReviewSelected
+                            ? 'border-amber-400 bg-amber-50 cursor-default'
                             : 'border-gray-200 bg-gray-50 cursor-default'
-                          : isSubmitting
-                            ? 'border-gray-300 bg-gray-100 cursor-wait'
-                            : isSelected
-                              ? isCorrect
-                                ? 'border-green-400 bg-green-50'
-                                : 'border-red-400 bg-red-50'
-                              : 'border-gray-200 bg-white hover:border-indigo-300'
+                        : isSubmitting
+                          ? 'border-gray-300 bg-gray-100 cursor-wait'
+                          : isSelected
+                            ? isCorrect
+                              ? 'border-green-400 bg-green-50'
+                              : 'border-red-400 bg-red-50'
+                            : 'border-gray-200 bg-white hover:border-indigo-300'
                         } ${isSelected ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                     >
                       <span className="text-sm text-gray-700">{option}</span>
                       {isSubmitting && <span className="ml-2 text-gray-500">...</span>}
+                      {isReviewSelected && (
+                        <span className="ml-2 text-xs font-semibold text-amber-700">Tu respuesta</span>
+                      )}
                       {isReviewCorrect && (
                         <span className="ml-2 text-xs font-semibold text-green-700">Respuesta correcta</span>
                       )}
@@ -259,12 +296,20 @@ export const QuizSession: React.FC = () => {
 
         {isReviewMode && (
           <div className="mt-8 text-center">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="px-8 py-4 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition shadow-sm"
-            >
-              Volver al dashboard
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={retryQuiz}
+                className="px-8 py-4 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition shadow-sm"
+              >
+                Reintentar quiz
+              </button>
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="px-8 py-4 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition shadow-sm"
+              >
+                Volver al dashboard
+              </button>
+            </div>
           </div>
         )}
       </div>

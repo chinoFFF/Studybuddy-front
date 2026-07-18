@@ -3,6 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { quizzesApi } from '../api/quizzes.api';
 import type { AttemptSummary } from '../types/quiz';
 
+type QuizAttemptGroup = {
+  quiz_id: string;
+  quiz_title: string;
+  attempts: AttemptSummary[];
+};
+
 export const Examenes: React.FC = () => {
   const navigate = useNavigate();
   const [attempts, setAttempts] = useState<AttemptSummary[]>([]);
@@ -34,6 +40,28 @@ export const Examenes: React.FC = () => {
       minute: '2-digit',
     });
   };
+
+  const groupedAttempts = attempts.reduce<QuizAttemptGroup[]>((groups, attempt) => {
+    const existingGroup = groups.find((group) => group.quiz_id === attempt.quiz_id);
+
+    if (existingGroup) {
+      existingGroup.attempts.push(attempt);
+      return groups;
+    }
+
+    groups.push({
+      quiz_id: attempt.quiz_id,
+      quiz_title: attempt.quiz_title,
+      attempts: [attempt],
+    });
+
+    return groups;
+  }, []).map((group) => ({
+    ...group,
+    attempts: [...group.attempts].sort(
+      (left, right) => Number(new Date(right.started_at)) - Number(new Date(left.started_at))
+    ),
+  }));
 
   if (loading) {
     return (
@@ -85,32 +113,50 @@ export const Examenes: React.FC = () => {
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
-            {attempts.map((attempt) => (
-              <div
-                key={attempt.attempt_id}
-                className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 cursor-pointer hover:shadow-md hover:border-indigo-300 transition"
-                onClick={() => navigate(`/quizzes/${attempt.quiz_id}`)}
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-800">{attempt.quiz_title}</h3>
-                    <p className="text-gray-500 text-sm mt-1">
-                      {attempt.is_finished ? 'Completado' : 'En progreso'} · {formatDate(attempt.started_at)}
-                    </p>
-                  </div>
-                  {attempt.is_finished && (
-                    <div className="text-right">
-                      <div className={`text-3xl font-bold ${
-                        attempt.score >= 70 ? 'text-green-600' : attempt.score >= 50 ? 'text-amber-600' : 'text-red-600'
-                      }`}>
-                        {Math.round(attempt.score)}%
-                      </div>
+          <div className="space-y-8">
+            {groupedAttempts.map((group) => {
+              const totalAttempts = group.attempts.length;
+
+              return (
+                <section key={group.quiz_id} className="space-y-3">
+                  <div className="flex items-end justify-between gap-4 px-1">
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-800">{group.quiz_title}</h2>
+                      <p className="text-sm text-gray-500">{totalAttempts} intento{totalAttempts === 1 ? '' : 's'} en total</p>
                     </div>
-                  )}
-                </div>
-              </div>
-            ))}
+                  </div>
+
+                  <div className="space-y-4">
+                    {group.attempts.map((attempt) => (
+                      <div
+                        key={attempt.attempt_id}
+                        className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 cursor-pointer hover:shadow-md hover:border-indigo-300 transition"
+                        onClick={() => navigate(`/quizzes/${attempt.quiz_id}`)}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <h3 className="text-xl font-semibold text-gray-800">
+                              Intento {attempt.attempt_number} de {totalAttempts}
+                            </h3>
+                            <p className="text-gray-500 text-sm mt-1">
+                              {attempt.is_finished ? 'Completado' : 'En progreso'} · {formatDate(attempt.started_at)}
+                            </p>
+                          </div>
+                          {attempt.is_finished && (
+                            <div className="text-right">
+                              <div className={`text-3xl font-bold ${attempt.score >= 70 ? 'text-green-600' : attempt.score >= 50 ? 'text-amber-600' : 'text-red-600'
+                                }`}>
+                                {Math.round(attempt.score)}%
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
           </div>
         )}
       </div>

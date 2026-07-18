@@ -9,6 +9,7 @@ export interface QuestionResponse {
 
 export interface QuestionWithAnswerResponse extends QuestionResponse {
   correct_answer: string;
+  selected_option?: string | null;
 }
 
 export interface QuizResponse {
@@ -56,6 +57,7 @@ export interface AttemptSummary {
   attempt_id: string;
   quiz_id: string;
   quiz_title: string;
+  attempt_number: number;
   score: number;
   started_at: string;
   completed_at: string;
