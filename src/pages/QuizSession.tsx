@@ -8,6 +8,7 @@ export const QuizSession: React.FC = () => {
   const navigate = useNavigate();
   const [quiz, setQuiz] = useState<QuizResponse | null>(null);
   const [attempt, setAttempt] = useState<StartAttemptResponse | null>(null);
+  const [isReviewMode, setIsReviewMode] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<Record<string, SubmitAnswerResponse>>({});
   const [result, setResult] = useState<FinishAttemptResponse | null>(null);
@@ -22,6 +23,13 @@ export const QuizSession: React.FC = () => {
     try {
       const data = await quizzesApi.getQuiz(quizId);
       setQuiz(data as QuizResponse);
+
+      const hasCorrectAnswers = data.questions.some((question) => 'correct_answer' in question);
+      setIsReviewMode(hasCorrectAnswers);
+
+      if (hasCorrectAnswers) {
+        localStorage.removeItem(getStorageKey());
+      }
     } catch (err) {
       console.error('Error loading quiz:', err);
       setError('No se pudo cargar el quiz');
@@ -32,7 +40,7 @@ export const QuizSession: React.FC = () => {
 
   const startAttempt = useCallback(async () => {
     if (!quizId) return;
-    
+
     // Check if we have an existing attempt in localStorage
     const storedAttemptJson = localStorage.getItem(getStorageKey());
     if (storedAttemptJson) {
@@ -61,10 +69,10 @@ export const QuizSession: React.FC = () => {
   }, [loadQuiz]);
 
   useEffect(() => {
-    if (quiz && !attempt) {
+    if (quiz && !attempt && !isReviewMode) {
       startAttempt();
     }
-  }, [quiz, attempt, startAttempt]);
+  }, [quiz, attempt, isReviewMode, startAttempt]);
 
   const submitAnswer = async (question: QuestionResponse, selectedOption: string) => {
     if (!attempt) return;
@@ -99,6 +107,7 @@ export const QuizSession: React.FC = () => {
   };
 
   const allQuestionsAnswered = quiz && Object.keys(answers).length === quiz.questions.length;
+  const isReadOnlyMode = isReviewMode || !!result;
 
   if (loading) {
     return (
@@ -166,6 +175,11 @@ export const QuizSession: React.FC = () => {
           </button>
           <h1 className="text-3xl font-bold text-gray-800">{quiz.title}</h1>
           <p className="text-gray-600 mt-1">{quiz.topic}</p>
+          {isReviewMode && (
+            <p className="mt-3 inline-flex rounded-full bg-indigo-100 px-3 py-1 text-sm font-semibold text-indigo-700">
+              Quiz ya completado. Vista de repaso.
+            </p>
+          )}
         </header>
 
         <div className="space-y-6">
@@ -179,11 +193,10 @@ export const QuizSession: React.FC = () => {
                   {index + 1}. {question.prompt}
                 </h3>
                 {feedback[question.id] && (
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full shrink-0 ml-3 ${
-                    feedback[question.id].is_correct
+                  <span className={`text-xs font-medium px-2 py-1 rounded-full shrink-0 ml-3 ${feedback[question.id].is_correct
                       ? 'bg-green-100 text-green-700'
                       : 'bg-red-100 text-red-700'
-                  }`}>
+                    }`}>
                     {feedback[question.id].is_correct ? '✓ Correcto' : '✗ Incorrecto'}
                   </span>
                 )}
@@ -195,26 +208,36 @@ export const QuizSession: React.FC = () => {
                   const isSubmitting = submitting[question.id];
                   const showResult = feedback[question.id];
                   const isCorrect = showResult && feedback[question.id].correct_answer === option;
-                  const isWrong = showResult && isSelected && !feedback[question.id].is_correct;
+                  const isReviewCorrect = isReviewMode && 'correct_answer' in question && question.correct_answer === option;
 
                   return (
                     <button
                       key={option}
                       type="button"
-                      disabled={isSubmitting || isSelected}
-                      onClick={() => submitAnswer(question, option)}
-                      className={`w-full text-left px-4 py-3 rounded-lg border transition ${
-                        isSubmitting
-                          ? 'border-gray-300 bg-gray-100 cursor-wait'
-                          : isSelected
-                            ? isCorrect
-                              ? 'border-green-400 bg-green-50'
-                              : 'border-red-400 bg-red-50'
-                            : 'border-gray-200 bg-white hover:border-indigo-300'
-                      } ${isSelected ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                      disabled={isReadOnlyMode || isSubmitting || isSelected}
+                      onClick={() => {
+                        if (!isReadOnlyMode) {
+                          void submitAnswer(question, option);
+                        }
+                      }}
+                      className={`w-full text-left px-4 py-3 rounded-lg border transition ${isReadOnlyMode
+                          ? isReviewCorrect
+                            ? 'border-green-400 bg-green-50 cursor-default'
+                            : 'border-gray-200 bg-gray-50 cursor-default'
+                          : isSubmitting
+                            ? 'border-gray-300 bg-gray-100 cursor-wait'
+                            : isSelected
+                              ? isCorrect
+                                ? 'border-green-400 bg-green-50'
+                                : 'border-red-400 bg-red-50'
+                              : 'border-gray-200 bg-white hover:border-indigo-300'
+                        } ${isSelected ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                     >
                       <span className="text-sm text-gray-700">{option}</span>
                       {isSubmitting && <span className="ml-2 text-gray-500">...</span>}
+                      {isReviewCorrect && (
+                        <span className="ml-2 text-xs font-semibold text-green-700">Respuesta correcta</span>
+                      )}
                     </button>
                   );
                 })}
@@ -223,13 +246,24 @@ export const QuizSession: React.FC = () => {
           ))}
         </div>
 
-        {allQuestionsAnswered && !result && (
+        {allQuestionsAnswered && !result && !isReviewMode && (
           <div className="mt-8 text-center">
             <button
               onClick={finishQuiz}
               className="px-8 py-4 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition shadow-sm"
             >
               Finalizar Quiz
+            </button>
+          </div>
+        )}
+
+        {isReviewMode && (
+          <div className="mt-8 text-center">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="px-8 py-4 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition shadow-sm"
+            >
+              Volver al dashboard
             </button>
           </div>
         )}
